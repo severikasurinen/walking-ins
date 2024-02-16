@@ -1,6 +1,6 @@
-#include "3DMath.h";
-#include "IMUManager.h";
-#include "BLEManager.h";
+#include "quaternion_math.h";
+#include "ble_manager.h";
+#include "imu_manager.h";
 
 uint32_t last_action = 0, current_value = 0;
 uint16_t sleep_time = 600; // DO NOT SET BELOW 15 SECONDS!!!

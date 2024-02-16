@@ -1,4 +1,3 @@
 # walking-ins
 
-sähköpaja_rojekti
-...
+Sähköpajaprojekti
