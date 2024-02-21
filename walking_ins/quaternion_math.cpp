@@ -14,7 +14,7 @@ Quaternion::Quaternion(float in_w, float in_x, float in_y, float in_z) {
   z = in_z;
 }
 
-void Quaternion::print() {
+void Quaternion::Print() {
   Serial.print("[ ");
   Serial.print(w);
   Serial.print(", ");

@@ -1,12 +1,17 @@
 #include "imu_manager.h"
 
+#define IMU_ADDRESS 0x68      // MPU6050 I2C address
+#define ACCELERATION_RANGE 1  // 0: 2g, 1: 4g, 2: 8g, 3: 16g
+#define GYRO_RANGE 1          // 0: 250, 1: 500, 2: 1000, 3: 2000
+#define LOW_PASS_FILTER 0     // 0: disabled, 1-6: increased filtering
+
 void SetupIMU() {
-  Wire.begin();                         // Initialize comunication
-  Wire.setClock(400000);                // 400kHz I2C clock. Comment this line if having compilation difficulties
+  Wire.begin();           // Initialize comunication
+  Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
 
   Wire.beginTransmission(IMU_ADDRESS);  // Start communication with MPU6050
   Wire.write(0x6B);                     // Talk to the register 6B
-  Wire.write(0x00);                     // Reset device
+  Wire.write(0x01);                     // Reset device
   Wire.endTransmission(true);           //end the transmission
 
   // Configure Digital Low Pass Filter - default disabled
@@ -76,4 +81,12 @@ void UpdateIMU() {
     }
   }
   */
+}
+
+/// Puts IMU into sleep mode.
+void SleepIMU() {
+  Wire.beginTransmission(IMU_ADDRESS);  // Start communication with MPU6050
+  Wire.write(0x6B);                     // Talk to the register 6B
+  Wire.write(0x40);                     // Set sleep bit to 1
+  Wire.endTransmission(true);           //end the transmission
 }

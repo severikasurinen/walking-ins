@@ -1,5 +1,10 @@
 #include "ble_manager.h"
 
+#define ADVERTISING_NAME "ATA-S"
+#define SERVICE_UUID "2e5dc756-78bd-405c-bb72-9641a6848842"
+#define CONTROL_CHARACTERISTIC_UUID "0cf0cef9-ec1a-495a-a007-4de6037a303b"
+#define DATA_CHARACTERISTIC_UUID "a20eebe5-dfbf-4428-bb7b-84e40d102681"
+
 bool device_connected = false;
 
 BLECharacteristic controlCharacteristic(CONTROL_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ);
@@ -39,7 +44,8 @@ void SetupBLE() {
   controlCharacteristic.setValue("init");
 
   pService->addCharacteristic(&dataCharacteristic);
-  dataCharacteristic.setValue(uint32_t(0));
+  uint32_t initVal = 0;
+  dataCharacteristic.setValue(initVal);
 
   pService->start();
 
