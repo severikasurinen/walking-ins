@@ -32,7 +32,7 @@ class TestiSovellus(tk.Tk):
         self.header.place(relx=0.3, rely=0, relwidth=0.7, relheight=0.1)
 
         # CREATING FIGURE #1
-        img = plt.imread("pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map"
+        img = plt.imread("GUI Resources/pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map"
         x = np.linspace(10, 25.0, num=200)
         y = -0.01*(x-28)*(x-8)*(x-1)+7
 

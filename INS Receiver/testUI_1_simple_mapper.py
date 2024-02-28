@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 
 # IMPORT BACKGROUND IMG
-img = plt.imread("pohjakuva.PNG")
+img = plt.imread("GUI Resources/pohjakuva2.PNG")
 
 
 fig, ax = plt.subplots()

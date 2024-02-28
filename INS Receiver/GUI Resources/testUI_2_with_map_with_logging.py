@@ -116,7 +116,7 @@ class Frame1(tk.Frame):
         label.pack()      
 
         # CREATING FIGURE #1
-        img = plt.imread("pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map"
+        img = plt.imread("GUI Resources/pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map"
 
         f = Figure(figsize=(10,10), dpi=100)
         a = f.add_subplot(111)
@@ -136,7 +136,7 @@ class Frame2(tk.Frame):
         label.pack()  
 
         # CREATING FIGURE #2
-        img = plt.imread("pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map"
+        img = plt.imread("GUI Resources/pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map" #turha kun kahteen kertaan
         x = np.linspace(0.5, 3.0, num=20)
         y = 0.9*x 
 
