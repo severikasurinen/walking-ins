@@ -14,9 +14,6 @@ max_x = 50
 min_y = 0
 max_y = 50
 
-
-
-
 class TestiSovellus(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
@@ -46,12 +43,6 @@ class TestiSovellus(tk.Tk):
 
         canvas.draw()
         canvas.get_tk_widget().pack()
-
-
-
-
-
-
 
 
 root = TestiSovellus()        
