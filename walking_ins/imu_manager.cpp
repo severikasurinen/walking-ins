@@ -1,9 +1,18 @@
 #include "imu_manager.h"
 
+#define DEBUG true
+
 #define IMU_ADDRESS 0x68      // MPU6050 I2C address
 #define ACCELERATION_RANGE 1  // 0: 2g, 1: 4g, 2: 8g, 3: 16g
 #define GYRO_RANGE 1          // 0: 250, 1: 500, 2: 1000, 3: 2000
 #define LOW_PASS_FILTER 0     // 0: disabled, 1-6: increased filtering
+
+#define G_VALUE 9.825     // Helsinki
+
+float gyro_multiplier = 1/(131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
+float accel_multiplier = 1;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
+Vector gyro_offset;                                 // float offset to deg/s values, calculated in setup calibration
+Quaternion rot_offset;                              // Rotation from local to global vectors, calculated in setup calibration
 
 void SetupIMU() {
   Wire.begin();           // Initialize comunication
@@ -35,52 +44,63 @@ void SetupIMU() {
   Serial.println("MPU6050 setup done.");
 }
 
-void UpdateIMU() {
+int16_t* ReadSensor() {
+  static int16_t out_data[6];
+
   Wire.beginTransmission(IMU_ADDRESS);
   Wire.write(0x3B);  // Start with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
   Wire.requestFrom(IMU_ADDRESS, 14, true);  // Read 14 registers total, each axis value is stored in 2 registers
 
-  int16_t raw_data[7];
+  out_data[0] = Wire.read() << 8 | Wire.read();  // X-axis acceleration data
+  out_data[1] = Wire.read() << 8 | Wire.read();  // Y-axis acceleration data
+  out_data[2] = Wire.read() << 8 | Wire.read();  // Z-axis acceleration data
 
-  raw_data[0] = Wire.read() << 8 | Wire.read();  // X-axis acceleration data
-  raw_data[1] = Wire.read() << 8 | Wire.read();  // Y-axis acceleration data
-  raw_data[2] = Wire.read() << 8 | Wire.read();  // Z-axis acceleration data
+  Wire.read() << 8 | Wire.read();  // Temperature value in Celsius
 
-  raw_data[6] = Wire.read() << 8 | Wire.read();  // Temperature value in Celsius
+  out_data[3] = Wire.read() << 8 | Wire.read();  // X-axis gyro data
+  out_data[4] = Wire.read() << 8 | Wire.read();  // Y-axis gyro data
+  out_data[5] = Wire.read() << 8 | Wire.read();  // Z-axis gyro data
 
-  raw_data[3] = Wire.read() << 8 | Wire.read();  // X-axis gyro data
-  raw_data[4] = Wire.read() << 8 | Wire.read();  // Y-axis gyro data
-  raw_data[5] = Wire.read() << 8 | Wire.read();  // Z-axis gyro data
+  dt = (micros() - t_last) / 1000000f;  // TODO: Fix overflow issues (rollover every ca. 70 mins)
+  t_last = micros();
 
-  Serial.print("x:");
-  Serial.print(raw_data[0]);
-  Serial.print(",");
-  Serial.print("y:");
-  Serial.print(raw_data[1]);
-  Serial.print(",");
-  Serial.print("z:");
-  Serial.print(raw_data[2]);
-  Serial.print(",");
-  Serial.print("a:");
-  Serial.print(raw_data[3]);
-  Serial.print(",");
-  Serial.print("b:");
-  Serial.print(raw_data[4]);
-  Serial.print(",");
-  Serial.print("c:");
-  Serial.println(raw_data[5]);
-  /*
-  for(int i = 0; i < 7; i++) {
-    Serial.print(raw_data[i]);
-    if(i < 6) {
-      Serial.print(" | ");
-    }
-    else {
-      Serial.println();
-    }
+  if(DEBUG) {
+    Serial.print("x:");
+    Serial.print(out_data[0]);
+    Serial.print(",");
+    Serial.print("y:");
+    Serial.print(out_data[1]);
+    Serial.print(",");
+    Serial.print("z:");
+    Serial.print(out_data[2]);
+    Serial.print(",");
+    Serial.print("a:");
+    Serial.print(out_data[3]);
+    Serial.print(",");
+    Serial.print("b:");
+    Serial.print(out_data[4]);
+    Serial.print(",");
+    Serial.print("c:");
+    Serial.println(out_data[5]);
   }
-  */
+  
+  return out_data;
+}
+
+tuple<Vector, Quaternion> RawCorrection() {
+  Vector out_accel = Vector();
+  Quaternion out_rot = Quaternion();
+
+  int16_t in_data[6] = ReadSensor();
+
+  // TODO: Implement corrections using multiplier and offset variables
+
+  return make_tuple(out_accel, out_rot);
+}
+
+void SetupCalibration() {
+  int16_t raw_data[6] = ReadSensor();
 }
 
 /// Puts IMU into sleep mode.

@@ -16,6 +16,18 @@ public:
   void Print();
 };
 
+class Vector {
+public:
+  float x;
+  float y;
+  float z;
+
+  Vector();
+  Vector(float in_x, float in_y, float in_z);
+
+  void Print();
+};
+
 extern Quaternion EulerToQuaternion(float roll, float pitch, float yaw);
 
 #endif

@@ -26,6 +26,28 @@ void Quaternion::Print() {
   Serial.println(" ]");
 }
 
+Vector::Vector() {
+  x = 0.0f;
+  y = 0.0f;
+  z = 0.0f;
+}
+
+Vector::Vector(float in_x, float in_y, float in_z) {
+  x = in_x;
+  y = in_y;
+  z = in_z;
+}
+
+void Vector::Print() {
+  Serial.print("[ ");
+  Serial.print(x);
+  Serial.print(", ");
+  Serial.print(y);
+  Serial.print(", ");
+  Serial.print(z);
+  Serial.println(" ]");
+}
+
 Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), pitch (y), yaw (z), angles are in degrees
 {
   // Abbreviations for the various angular functions
