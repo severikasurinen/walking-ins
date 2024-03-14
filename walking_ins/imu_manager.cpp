@@ -99,8 +99,15 @@ tuple<Vector, Quaternion> RawCorrection() {
   return make_tuple(out_accel, out_rot);
 }
 
+
 void SetupCalibration() {
   int16_t raw_data[6] = ReadSensor();
+  Vector linear_acc = new Vector(raw_data[0], raw_data[1], raw_data[2]); //read linear acceleration
+  Vector angular_vel = new Vector(raw_data[3], raw_data[4], raw_data[5]); //read angular velocities
+  Vector normalized_g = new Vector(0,0,1);
+  
+
+  Quaternion rot_offset = OffsetQ(linear_acc, normalized_g)
 }
 
 /// Puts IMU into sleep mode.
