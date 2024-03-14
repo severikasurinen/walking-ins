@@ -1,18 +1,21 @@
 #include "imu_manager.h"
 
-#define DEBUG true
-
 #define IMU_ADDRESS 0x68      // MPU6050 I2C address
 #define ACCELERATION_RANGE 1  // 0: 2g, 1: 4g, 2: 8g, 3: 16g
 #define GYRO_RANGE 1          // 0: 250, 1: 500, 2: 1000, 3: 2000
 #define LOW_PASS_FILTER 0     // 0: disabled, 1-6: increased filtering
 
-#define G_VALUE 9.825     // Helsinki
+#define G_VALUE 9.825         // Helsinki
+
+#define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
 float gyro_multiplier = 1/(131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
 float accel_multiplier = 1;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
 Vector gyro_offset;                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset;                              // Rotation from local to global vectors, calculated in setup calibration
+
+bool device_moving = false;
+uint32_t t_stopped = 0;     // Since when device has been still?
 
 void SetupIMU() {
   Wire.begin();           // Initialize comunication
@@ -65,7 +68,7 @@ int16_t* ReadSensor() {
   dt = (micros() - t_last) / 1000000f;  // TODO: Fix overflow issues (rollover every ca. 70 mins)
   t_last = micros();
 
-  if(DEBUG) {
+  if(DEBUG_MODE) {
     Serial.print("x:");
     Serial.print(out_data[0]);
     Serial.print(",");
@@ -101,6 +104,15 @@ tuple<Vector, Quaternion> RawCorrection() {
 
 void SetupCalibration() {
   int16_t raw_data[6] = ReadSensor();
+}
+
+void PartialCalibration() {
+  int16_t raw_data[6] = ReadSensor();
+  // Set speed to 0, reset values to first update of no movement
+}
+
+void UpdateIMU() {
+  // Use RawCorrection() and last sensor data to calculate new values
 }
 
 /// Puts IMU into sleep mode.

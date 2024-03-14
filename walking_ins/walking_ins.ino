@@ -1,11 +1,14 @@
+#define DEBUG_MODE true
+
+char device_state = 0;
+uint32_t last_action = 0;
+
 #include "quaternion_math.h"
 #include "ble_manager.h"
 #include "imu_manager.h"
 
+#define SLEEP_TIME 600  // DO NOT SET BELOW 15 SECONDS!!!
 #define POWER_LED 8
-
-uint32_t last_action = 0, current_value = 0;
-uint16_t sleep_time = 600;  // DO NOT SET BELOW 15 SECONDS!!!
 
 void setup() {
   delay(3000);
@@ -19,17 +22,35 @@ void setup() {
 }
 
 void loop() {
-  if (device_connected) {
-    delay(100);
-    current_value = millis();
-    SetData(current_value);
-    last_action = millis();
-  } else if (millis() - last_action > sleep_time * 1000) {
-    digitalWrite(POWER_LED, LOW);
-    SleepIMU();
-    esp_deep_sleep_start();  // Power off to save battery
-  } else {
-    delay(100);
-    UpdateIMU();
+  switch (device_state) {
+    case 0: // waiting for BLE
+      if (millis() - last_action > SLEEP_TIME * 1000) {
+        digitalWrite(POWER_LED, LOW);
+        SleepIMU();
+        esp_deep_sleep_start();  // Power off to save battery
+      }
+      else {
+        if (DEBUG_MODE) {
+          delay(100);
+          UpdateIMU();
+        } else {
+          delay(5000);
+        }
+      }
+      break;
+    case 1: // connected, standby
+      delay(100);
+      SendData(millis());
+      break;
+    case 2: // active measurement
+      if (device_moving) {
+
+      } else {
+        SendData(millis());
+      }
+      break;
+    default:
+      device_state = 0;
+      break;
   }
 }
