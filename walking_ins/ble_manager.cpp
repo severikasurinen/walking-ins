@@ -5,19 +5,18 @@
 #define CONTROL_CHARACTERISTIC_UUID "0cf0cef9-ec1a-495a-a007-4de6037a303b"
 #define DATA_CHARACTERISTIC_UUID "a20eebe5-dfbf-4428-bb7b-84e40d102681"
 
-bool device_connected = false;
-
 BLECharacteristic controlCharacteristic(CONTROL_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ);
 BLEDescriptor controlDescriptor(BLEUUID((uint16_t)0x2902));
 BLECharacteristic dataCharacteristic(DATA_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor dataDescriptor(BLEUUID((uint16_t)0x2903));
 
 void MyServerCallbacks::onConnect(BLEServer *pServer) {
-  device_connected = true;
+  device_state = 1;
   Serial.println("Device connected.");
 };
 void MyServerCallbacks::onDisconnect(BLEServer *pServer) {
-  device_connected = false;
+  device_state = 0;
+  last_action = millis();
   Serial.println("Device disconnected.");
 }
 
@@ -61,7 +60,7 @@ void SetupBLE() {
   Serial.println("'.");
 }
 
-void SetData(uint32_t in_data) {
+void SendData(uint32_t in_data) {
   dataCharacteristic.setValue(in_data);
   dataCharacteristic.notify();
 }

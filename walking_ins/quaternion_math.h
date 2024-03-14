@@ -28,6 +28,17 @@ public:
   void Print();
 };
 
+class Transform {
+public:
+  Vector pos;
+  Quaternion rot;
+
+  Transform();
+  Transform(Vector in_pos, Quaternion in_rot);
+
+  void Print();
+};
+
 extern Quaternion EulerToQuaternion(float roll, float pitch, float yaw);
 
 #endif
