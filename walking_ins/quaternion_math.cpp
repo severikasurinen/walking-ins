@@ -15,7 +15,7 @@ Quaternion::Quaternion(float in_w, float in_x, float in_y, float in_z) {
 }
 
 void Quaternion::Print() {
-  Serial.print("[ ");
+  Serial.print("Quaternion: [ ");
   Serial.print(w);
   Serial.print(", ");
   Serial.print(x);
@@ -39,13 +39,29 @@ Vector::Vector(float in_x, float in_y, float in_z) {
 }
 
 void Vector::Print() {
-  Serial.print("[ ");
+  Serial.print("Vector: [ ");
   Serial.print(x);
   Serial.print(", ");
   Serial.print(y);
   Serial.print(", ");
   Serial.print(z);
   Serial.println(" ]");
+}
+
+Transform::Transform() {
+  pos = Vector();
+  rot = Quaternion();
+}
+
+void Transform::Print() {
+  pos.Print();
+  Serial.println("-");
+  rot.Print();
+}
+
+Transform::Transform(Vector in_pos, Quaternion in_rot) {
+  pos = in_pos;
+  rot = in_rot;
 }
 
 Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), pitch (y), yaw (z), angles are in degrees
