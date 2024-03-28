@@ -117,6 +117,19 @@ tuple<Vector, Quaternion> RawCorrection() {
 }
 
 
+bool MomentarilyStationary(float tolerance, float g) { //returns true if the norm of the linear acceleration is g within tolerance
+  int16_t raw_data[6] = ReadSensor();
+  Vector linear_acc = new Vector(raw_data[0], raw_data[1], raw_data[2]); //read linear acceleration
+  float norm = sqrt(VectorDot((accel_multiplier*linear_acc), (accel_multiplier*linear_acc))); //multiply raw data by conversion factor to get m/s^2
+  if((norm + tolerance < g) || (norm - tolerance > g)) {
+    return true;
+  } else {
+    return false;
+  }
+
+}
+
+
 void SetupCalibration() {
   int16_t raw_data[6] = ReadSensor();
   Vector linear_acc = new Vector(raw_data[0], raw_data[1], raw_data[2]); //read linear acceleration
