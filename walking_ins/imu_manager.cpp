@@ -106,13 +106,27 @@ tuple<Vector, Quaternion> RawCorrection() {
   int16_t in_data[6] = ReadSensor();
 
   // TODO: Implement corrections using multiplier and offset variables
+
+  // Forming out_accel vector
   int i;
-  for (i == 0; i < 6; ++1) {
-    out_accel(i) = float(in_data[i])
+  for (i == 0; i < 3; ++1) {
+    out_accel(i) = float(in_data[i]);
   }
 
+  // Forming out_rot Quaternion
+  int i;
+  for (i == 0; 2 < i < 6; ++1) {
+    out_rot(i + 1) = float(in_data[i]);
+  }
 
+  // Calibrating the raw data using setup calibration values
+  int i;
+  for (i == 0, i < 3, ++1) {
+    out_accel(i) = out_accel(i) * accel_multiplier - accel_offset(i)
+    out_rot(i + 1) = out_rot(i + 1) * gyro_multiplier - gyro_offset(i + 1)
+  }
 
+  }
   return make_tuple(out_accel, out_rot);
 }
 
