@@ -16,6 +16,8 @@ Quaternion rot_offset;                              // Rotation from local to gl
 
 bool device_moving = false;
 uint32_t t_stopped = 0;     // Since when device has been still?
+unsigned long dt = 0
+unsigned long t_last
 
 void SetupIMU() {
   Wire.begin();           // Initialize comunication
@@ -65,7 +67,13 @@ int16_t* ReadSensor() {
   out_data[4] = Wire.read() << 8 | Wire.read();  // Y-axis gyro data
   out_data[5] = Wire.read() << 8 | Wire.read();  // Z-axis gyro data
 
-  dt = (micros() - t_last) / 1000000f;  // TODO: Fix overflow issues (rollover every ca. 70 mins)
+  dt = // TODO: Fix overflow issues (rollover every ca. 70 mins)
+    if (micros() < t_last) {
+      (FFFFFFFFFFFFFFFF - t_last + micros()) / 1000000f;
+    else
+      (micros() - t_last) / 1000000f;
+    }
+        
   t_last = micros();
 
   if(DEBUG_MODE) {
@@ -98,6 +106,12 @@ tuple<Vector, Quaternion> RawCorrection() {
   int16_t in_data[6] = ReadSensor();
 
   // TODO: Implement corrections using multiplier and offset variables
+  int i;
+  for (i == 0; i < 6; ++1) {
+    out_accel(i) = float(in_data[i])
+  }
+
+
 
   return make_tuple(out_accel, out_rot);
 }
