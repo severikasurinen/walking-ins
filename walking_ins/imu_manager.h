@@ -6,19 +6,19 @@
 
 #include "quaternion_math.h"
 
-float gyro_multiplier;
-float accel_multiplier;
-Vector gyro_offset;
-Quaternion rot_offset;
+extern float gyro_multiplier;
+extern float accel_multiplier;
+extern Vector gyro_offset;
+extern Quaternion rot_offset;
 
 extern Vector velocity;
 extern Vector position;
 extern Quaternion rotation;
 
 extern bool device_moving;
-float dt;
-uint32_t t_stopped = 0;
-unsigned long t_last;
+extern uint32_t t_stopped;
+extern float dt;
+extern unsigned long t_last;
 
 extern void SetupIMU();
 int16_t* ReadSensor();

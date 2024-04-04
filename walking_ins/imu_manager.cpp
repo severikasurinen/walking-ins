@@ -1,5 +1,7 @@
 #include "imu_manager.h"
 
+#define DEBUG_MODE true
+
 #define IMU_ADDRESS 0x68      // MPU6050 I2C address
 #define ACCELERATION_RANGE 1  // 0: 2g, 1: 4g, 2: 8g, 3: 16g
 #define GYRO_RANGE 1          // 0: 250, 1: 500, 2: 1000, 3: 2000
@@ -10,20 +12,20 @@
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 #define SETUP_ITERATION 200
 
-float gyro_multiplier = 1/(131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
-float accel_multiplier = 1;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
-Vector gyro_offset;                                 // float offset to deg/s values, calculated in setup calibration
-Quaternion rot_offset;                              // Rotation from local to global vectors, calculated in setup calibration
+float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
+float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
+Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
+Quaternion rot_offset = Quaternion();                              // Rotation from local to global vectors, calculated in setup calibration
 
-Vector acceleration = new Vector();
-Vector velocity = new Vector();
-Vector position = new Vector();
-Quaternion rotation = new Quaternion();
+Vector acceleration = Vector();
+Vector velocity = Vector();
+Vector position = Vector();
+Quaternion rotation = Quaternion();
 
 bool device_moving = false;
 uint32_t t_stopped = 0;     // Since when device has been still?
-unsigned long dt = 0
-unsigned long prev_t = 0;
+float dt = 0;
+unsigned long t_last = 0;
 
 void SetupIMU() {
   Wire.begin();           // Initialize comunication
@@ -73,12 +75,12 @@ int16_t* ReadSensor() {
   out_data[4] = Wire.read() << 8 | Wire.read();  // Y-axis gyro data
   out_data[5] = Wire.read() << 8 | Wire.read();  // Z-axis gyro data
 
-  dt =
-    if (micros() < t_last) {
-      (FFFFFFFFFFFFFFFF - t_last + micros()) / 1000000f;
-    else
-      (micros() - t_last) / 1000000f;
-    }
+  if (micros() < t_last) {
+    dt = (ULONG_MAX - t_last + micros()) / 1000000.0;
+  }
+  else {
+    dt = (micros() - t_last) / 1000000.0;
+  }
         
   t_last = micros();
 
@@ -185,8 +187,6 @@ void UpdateIMU() {
   float[7] new_data = RawCorrection();
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
   Quaternion new_rot = Quaternion(new_data[3], new_data[4], new_data[5], new_data[6]);
-
-
 }
 
 /// Puts IMU into sleep mode.
