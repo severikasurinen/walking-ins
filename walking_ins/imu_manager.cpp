@@ -8,6 +8,7 @@
 #define G_VALUE 9.825         // Helsinki
 
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
+#define SETUP_ITERATION 200
 
 float gyro_multiplier = 1/(131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
 float accel_multiplier = 1;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
@@ -145,11 +146,25 @@ bool MomentarilyStationary(float tolerance, float g) { //returns true if the nor
 
 
 void SetupCalibration() {
+  int16_t init_data[6] = ReadSensor();
+  Vector linear_acc = new Vector(init_data[0],init_data[1],init_data[2]);
+  Vector angular_vel = new Vector(init_data[3], init_data[4], init_data[5]);
+
+
+  for (int i = 0; i < SETUP_ITERATION; i++) {
   int16_t raw_data[6] = ReadSensor();
-  Vector linear_acc = new Vector(raw_data[0], raw_data[1], raw_data[2]); //read linear acceleration
-  Vector angular_vel = new Vector(raw_data[3], raw_data[4], raw_data[5]); //read angular velocities
+  Vector acc_correction = new Vector(raw_data[0], raw_data[1], raw_data[2]);
+  Vector ang_correction = new Vector(raw_data[3], raw_data[4], raw_data[5]);
+  linear_acc = (1/i)*(linear_acc + acc_correction);
+  angular_vel = (1/i)*(angular_vel + ang_correction);
+
+
+  
+  }
+
   Vector normalized_g = new Vector(0,0,1);
   
+
 
   Quaternion rot_offset = OffsetQ(linear_acc, normalized_g)
 }
