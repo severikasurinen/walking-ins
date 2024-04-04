@@ -40,5 +40,9 @@ public:
 };
 
 extern Quaternion EulerToQuaternion(float roll, float pitch, float yaw);
+extern float VectorDot(Vector v1, Vector v2);
+extern float QuaternionDot(Quaternion q1, Quaternion q2);
+extern Vector CrossProd(Vector v1, Vector v2);
+extern Quaternion OffsetQ(Vector sensorRead, Vector g);
 
 #endif

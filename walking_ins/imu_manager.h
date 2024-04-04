@@ -3,25 +3,30 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <tuple>
 
-unsigned long t_last;
-float dt;
+#include "quaternion_math.h"
 
 float gyro_multiplier;
 float accel_multiplier;
 Vector gyro_offset;
+Quaternion rot_offset;
 
-extern Quaternion rot_offset;
+extern Vector velocity;
+extern Vector position;
+extern Quaternion rotation;
 
 extern bool device_moving;
+float dt;
+uint32_t t_stopped = 0;
+unsigned long t_last;
 
 extern void SetupIMU();
-extern int16_t* ReadSensor();
-extern tuple<Vector, Quaternion> RawCorrection();
+int16_t* ReadSensor();
+float* RawCorrection();
+bool MomentarilyStationary(float tolerance, float g);
 extern void SetupCalibration();
-extern void PartialCalibration();
-extern void UpdateIMU();
+void PartialCalibration();
+void UpdateIMU();
 extern void SleepIMU();
 
 #endif

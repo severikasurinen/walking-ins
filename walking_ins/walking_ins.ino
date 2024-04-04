@@ -1,8 +1,5 @@
 #define DEBUG_MODE true
 
-char device_state = 0;
-uint32_t last_action = 0;
-
 #include "quaternion_math.h"
 #include "ble_manager.h"
 #include "imu_manager.h"

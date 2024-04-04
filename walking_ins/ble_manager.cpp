@@ -5,6 +5,9 @@
 #define CONTROL_CHARACTERISTIC_UUID "0cf0cef9-ec1a-495a-a007-4de6037a303b"
 #define DATA_CHARACTERISTIC_UUID "a20eebe5-dfbf-4428-bb7b-84e40d102681"
 
+char device_state = 0;
+uint32_t last_action = 0;
+
 BLECharacteristic controlCharacteristic(CONTROL_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ);
 BLEDescriptor controlDescriptor(BLEUUID((uint16_t)0x2902));
 BLECharacteristic dataCharacteristic(DATA_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);

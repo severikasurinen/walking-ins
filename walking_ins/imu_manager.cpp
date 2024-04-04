@@ -15,10 +15,15 @@ float accel_multiplier = 1;                         // 16bit to m/s^2 multiplier
 Vector gyro_offset;                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset;                              // Rotation from local to global vectors, calculated in setup calibration
 
+Vector acceleration = new Vector();
+Vector velocity = new Vector();
+Vector position = new Vector();
+Quaternion rotation = new Quaternion();
+
 bool device_moving = false;
 uint32_t t_stopped = 0;     // Since when device has been still?
 unsigned long dt = 0
-unsigned long t_last
+unsigned long prev_t = 0;
 
 void SetupIMU() {
   Wire.begin();           // Initialize comunication
@@ -51,7 +56,7 @@ void SetupIMU() {
 }
 
 int16_t* ReadSensor() {
-  static int16_t out_data[6];
+  int16_t out_data[6];
 
   Wire.beginTransmission(IMU_ADDRESS);
   Wire.write(0x3B);  // Start with register 0x3B (ACCEL_XOUT_H)
@@ -68,7 +73,7 @@ int16_t* ReadSensor() {
   out_data[4] = Wire.read() << 8 | Wire.read();  // Y-axis gyro data
   out_data[5] = Wire.read() << 8 | Wire.read();  // Z-axis gyro data
 
-  dt = // TODO: Fix overflow issues (rollover every ca. 70 mins)
+  dt =
     if (micros() < t_last) {
       (FFFFFFFFFFFFFFFF - t_last + micros()) / 1000000f;
     else
@@ -100,35 +105,34 @@ int16_t* ReadSensor() {
   return out_data;
 }
 
-tuple<Vector, Quaternion> RawCorrection() {
-  Vector out_accel = Vector();
-  Quaternion out_rot = Quaternion();
-
+float* RawCorrection() {
   int16_t in_data[6] = ReadSensor();
 
-  // TODO: Implement corrections using multiplier and offset variables
-
-  // Forming out_accel vector
-  int i;
-  for (i == 0; i < 3; ++1) {
-    out_accel(i) = float(in_data[i]);
-  }
-
-  // Forming out_rot Quaternion
-  int i;
-  for (i == 0; 2 < i < 6; ++1) {
-    out_rot(i + 1) = float(in_data[i]);
-  }
+  Vector corrected_accel = Vector(in_data[0], in_data[1], in_data[2]);
 
   // Calibrating the raw data using setup calibration values
-  int i;
-  for (i == 0, i < 3, ++1) {
-    out_accel(i) = out_accel(i) * accel_multiplier - accel_offset(i)
-    out_rot(i + 1) = out_rot(i + 1) * gyro_multiplier - gyro_offset(i + 1)
-  }
+
+  corrected_accel.x = corrected_accel.x * accel_multiplier - accel_offset.x;
+  corrected_accel.y = corrected_accel.y * accel_multiplier - accel_offset.y;
+  corrected_accel.z = corrected_accel.z * accel_multiplier - accel_offset.z;
+
+  Vector corrected_gyro = Vector(in_data[3], in_data[4], in_data[5]);
+  corrected_gyro.x = corrected_gyro.x * gyro_multiplier - gyro_offset.x;
+  corrected_gyro.y = corrected_gyro.y * gyro_multiplier - gyro_offset.y;
+  corrected_gyro.z = corrected_gyro.z * gyro_multiplier - gyro_offset.z;
+
+  Quaternion corrected_rot = Quaternion(EulerToQuaternion(corrected_gyro.x, corrected_gyro.y, corrected_gyro.z));
 
   }
-  return make_tuple(out_accel, out_rot);
+  float out_data[7];
+  out_data[0] = corrected_accel.x;
+  out_data[1] = corrected_accel.y;
+  out_data[2] = corrected_accel.z;
+  out_data[3] = corrected_rot.w;
+  out_data[4] = corrected_rot.x;
+  out_data[5] = corrected_rot.y;
+  out_data[6] = corrected_rot.z;
+  return out_data;
 }
 
 
@@ -171,11 +175,18 @@ void SetupCalibration() {
 
 void PartialCalibration() {
   int16_t raw_data[6] = ReadSensor();
-  // Set speed to 0, reset values to first update of no movement
+  // Set velocity to 0, reset values to first update of no movement
+  velocity = new Vector();
 }
 
 void UpdateIMU() {
   // Use RawCorrection() and last sensor data to calculate new values
+
+  float[7] new_data = RawCorrection();
+  Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
+  Quaternion new_rot = Quaternion(new_data[3], new_data[4], new_data[5], new_data[6]);
+
+
 }
 
 /// Puts IMU into sleep mode.

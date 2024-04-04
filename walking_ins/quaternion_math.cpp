@@ -85,31 +85,37 @@ Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), p
   return q;
 }
 
-float VectorDot(Vector v1, Vector v2) 
+float VectorDot(Vector v1, Vector v2)
 {
   float dot;
   dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+
+  return dot;
 }
 
 float QuaternionDot(Quaternion q1, Quaternion q2)
 {
   float dot;
   dot = q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z;
+
+  return dot;
 }
 
-float Cross(Vector v1, Vector v2)
+Vector CrossProd(Vector v1, Vector v2)
 {
   Vector c;
   c.x = v1.y * v2.z - v1.z * v2.y;
   c.y = v1.x * v2.z - v1.z * v2.x;
   c.z = v1.x * v2.y - v1.y * v2.x;
+
+  return c;
 }
 
 Quaternion OffsetQ(Vector sensorRead, Vector g) // algorithm to generate the offset quaternion from vectors sensorRead and g
 {
 
   Vector c; //c for cross product
-  c = Cross(sensorRead, g);
+  c = CrossProd(sensorRead, g);
 
   float norm_s = VectorDot(sensorRead, sensorRead);
   float norm_g = VectorDot(g,g);
@@ -130,7 +136,6 @@ Quaternion OffsetQ(Vector sensorRead, Vector g) // algorithm to generate the off
   normalized_offset.z = (1/norm_o)*offset.z;
 
   return normalized_offset;
-
 }
 
 
