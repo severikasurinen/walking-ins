@@ -6,7 +6,8 @@
 #include "BLEUtils.h"
 #include "BLEServer.h"
 
-extern bool device_connected;
+extern char device_state;
+extern uint32_t last_action;
 
 extern BLECharacteristic controlCharacteristic;
 extern BLEDescriptor controlDescriptor;
@@ -24,6 +25,6 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
 extern void SetupBLE();
 
-extern void SetData(uint32_t in_data);
+extern void SendData(uint32_t in_data);
 
 #endif
