@@ -15,6 +15,11 @@ float accel_multiplier = 1;                         // 16bit to m/s^2 multiplier
 Vector gyro_offset;                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset;                              // Rotation from local to global vectors, calculated in setup calibration
 
+Vector last_corrected_acceleration = new Vector();
+Vector last_corrected_velocity = new Vector();
+Vector last_corrected_position = new Vector();
+Quaternion last_corrected_rotation = new Quaternion();
+
 Vector acceleration = new Vector();
 Vector velocity = new Vector();
 Vector position = new Vector();
@@ -155,22 +160,23 @@ void SetupCalibration() {
   Vector angular_vel = new Vector(init_data[3], init_data[4], init_data[5]);
 
 
-  for (int i = 0; i < SETUP_ITERATION; i++) {
+  for (int i = 2; i <= SETUP_ITERATION; i++) {
   int16_t raw_data[6] = ReadSensor();
   Vector acc_correction = new Vector(raw_data[0], raw_data[1], raw_data[2]);
   Vector ang_correction = new Vector(raw_data[3], raw_data[4], raw_data[5]);
-  linear_acc = (1/i)*(linear_acc + acc_correction);
-  angular_vel = (1/i)*(angular_vel + ang_correction);
+  linear_acc = linear_acc + acc_correction;
+  angular_vel = angular_vel + ang_correction;
 
 
   
   }
 
+
   Vector normalized_g = new Vector(0,0,1);
   
 
-
-  Quaternion rot_offset = OffsetQ(linear_acc, normalized_g)
+  gyro_offset = angular_vel/SETUP_ITERATION; //averaged angular velocity values
+  rot_offset = OffsetQ(linear_acc/SETUP_ITERATION, normalized_g);
 }
 
 void PartialCalibration() {
@@ -186,6 +192,7 @@ void UpdateIMU() {
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
   Quaternion new_rot = Quaternion(new_data[3], new_data[4], new_data[5], new_data[6]);
 
+  //TODO: update last_corrected at the end
 
 }
 
