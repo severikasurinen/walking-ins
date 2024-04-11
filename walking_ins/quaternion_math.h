@@ -40,6 +40,9 @@ public:
   Vector operator/(const float& other) const {
         return Vector(x / other, y / other, z / other);
   }
+  Vector operator*(const float& other) const {
+        return Vector(x * other, y * other, z * other);
+  }
 };
 
 extern Quaternion EulerToQuaternion(float roll, float pitch, float yaw);

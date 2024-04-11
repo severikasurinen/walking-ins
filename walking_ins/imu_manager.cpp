@@ -169,14 +169,14 @@ void UpdateIMU() {
     if(t_stopped == 0) {
       t_stopped = millis();
     }
-    else if(t_stopped > 0) {
-      if(millis() - t_stopped >= STOP_TIME) {
-        device_moving = false;
-      }
-      else if(millis() < t_stopped) { //overflow branch
+    else {
+      if(millis() < t_stopped) { //overflow branch
         if(UINT_MAX + millis() - t_stopped >= STOP_TIME) {
           device_moving = false;
         }
+      }
+      else if(millis() - t_stopped >= STOP_TIME) {
+        device_moving = false;
       } 
     }
   }
@@ -209,7 +209,7 @@ void UpdateIMU() {
     Serial.print(new_rot.z);
     Serial.print(",");
     Serial.print("mov:");
-    Serial.println(MomentarilyStationary(new_accel));
+    Serial.println(device_moving);
   }
   
   //TODO: update last_corrected at the end
