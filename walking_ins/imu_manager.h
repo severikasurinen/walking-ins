@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include<array>
+using namespace std;
 
 #include "quaternion_math.h"
 
@@ -21,8 +23,8 @@ extern float dt;
 extern unsigned long t_last;
 
 extern void SetupIMU();
-int16_t* ReadSensor();
-float* RawCorrection();
+std::array<int16_t, 6> ReadSensor();
+std::array<float, 7> RawCorrection();
 bool MomentarilyStationary(float tolerance, float g);
 extern void SetupCalibration();
 void PartialCalibration();

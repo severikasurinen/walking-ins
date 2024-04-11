@@ -62,8 +62,8 @@ void SetupIMU() {
   Serial.println("MPU6050 setup done.");
 }
 
-int16_t* ReadSensor() {
-  int16_t out_data[6];
+std::array<int16_t, 6> ReadSensor() {
+  std::array<int16_t, 6> out_data;
 
   Wire.beginTransmission(IMU_ADDRESS);
   Wire.write(0x3B);  // Start with register 0x3B (ACCEL_XOUT_H)
@@ -112,16 +112,16 @@ int16_t* ReadSensor() {
   return out_data;
 }
 
-float* RawCorrection() {
-  int16_t in_data[6] = ReadSensor();
+std::array<float, 7> RawCorrection() {
+  std::array<int16_t, 6> in_data = ReadSensor();
 
   Vector corrected_accel = Vector(in_data[0], in_data[1], in_data[2]);
 
   // Calibrating the raw data using setup calibration values
 
-  corrected_accel.x = corrected_accel.x * accel_multiplier - accel_offset.x;
-  corrected_accel.y = corrected_accel.y * accel_multiplier - accel_offset.y;
-  corrected_accel.z = corrected_accel.z * accel_multiplier - accel_offset.z;
+  corrected_accel.x = corrected_accel.x * accel_multiplier;
+  corrected_accel.y = corrected_accel.y * accel_multiplier;
+  corrected_accel.z = corrected_accel.z * accel_multiplier;
 
   Vector corrected_gyro = Vector(in_data[3], in_data[4], in_data[5]);
   corrected_gyro.x = corrected_gyro.x * gyro_multiplier - gyro_offset.x;
@@ -130,23 +130,24 @@ float* RawCorrection() {
 
   Quaternion corrected_rot = Quaternion(EulerToQuaternion(corrected_gyro.x, corrected_gyro.y, corrected_gyro.z));
 
-  }
-  float out_data[7];
-  out_data[0] = corrected_accel.x;
-  out_data[1] = corrected_accel.y;
-  out_data[2] = corrected_accel.z;
-  out_data[3] = corrected_rot.w;
-  out_data[4] = corrected_rot.x;
-  out_data[5] = corrected_rot.y;
-  out_data[6] = corrected_rot.z;
+  std::array<float, 7> out_data = {
+    corrected_accel.x,
+    corrected_accel.y,
+    corrected_accel.z,
+    corrected_rot.w,
+    corrected_rot.x,
+    corrected_rot.y,
+    corrected_rot.z
+  };
+
   return out_data;
 }
 
 
 bool MomentarilyStationary(float tolerance, float g) { //returns true if the norm of the linear acceleration is g within tolerance
-  int16_t raw_data[6] = ReadSensor();
-  Vector linear_acc = new Vector(raw_data[0], raw_data[1], raw_data[2]); //read linear acceleration
-  float norm = sqrt(VectorDot((accel_multiplier*linear_acc), (accel_multiplier*linear_acc))); //multiply raw data by conversion factor to get m/s^2
+  std::array<float, 7> sensor_data = RawCorrection();
+  Vector linear_acc = Vector(sensor_data[0], sensor_data[1], sensor_data[2]); //read linear acceleration
+  float norm = sqrt(VectorDot(linear_acc, linear_acc));
   if((norm + tolerance < g) || (norm - tolerance > g)) {
     return true;
   } else {
@@ -157,40 +158,37 @@ bool MomentarilyStationary(float tolerance, float g) { //returns true if the nor
 
 
 void SetupCalibration() {
-  int16_t init_data[6] = ReadSensor();
-  Vector linear_acc = new Vector(init_data[0],init_data[1],init_data[2]);
-  Vector angular_vel = new Vector(init_data[3], init_data[4], init_data[5]);
+  std::array<int16_t, 6> init_data = ReadSensor();
+  Vector linear_acc = Vector(init_data[0],init_data[1],init_data[2]);
+  Vector angular_vel = Vector(init_data[3], init_data[4], init_data[5]);
 
 
   for (int i = 2; i <= SETUP_ITERATION; i++) {
-  int16_t raw_data[6] = ReadSensor();
-  Vector acc_correction = new Vector(raw_data[0], raw_data[1], raw_data[2]);
-  Vector ang_correction = new Vector(raw_data[3], raw_data[4], raw_data[5]);
-  linear_acc = linear_acc + acc_correction;
-  angular_vel = angular_vel + ang_correction;
-
-
-  
+    std::array<int16_t, 6> raw_data = ReadSensor();
+    Vector acc_correction = Vector(raw_data[0], raw_data[1], raw_data[2]);
+    Vector ang_correction = Vector(raw_data[3], raw_data[4], raw_data[5]);
+    linear_acc = linear_acc + acc_correction;
+    angular_vel = angular_vel + ang_correction;
   }
 
 
-  Vector normalized_g = new Vector(0,0,1);
+  Vector normalized_g = Vector(0, 0, 1);
   
 
-  gyro_offset = angular_vel/SETUP_ITERATION; //averaged angular velocity values
-  rot_offset = OffsetQ(linear_acc/SETUP_ITERATION, normalized_g);
+  gyro_offset = angular_vel / SETUP_ITERATION; //averaged angular velocity values
+  rot_offset = OffsetQ(linear_acc / SETUP_ITERATION, normalized_g);
 }
 
 void PartialCalibration() {
-  int16_t raw_data[6] = ReadSensor();
+  std::array<int16_t, 6> raw_data = ReadSensor();
   // Set velocity to 0, reset values to first update of no movement
-  velocity = new Vector();
+  velocity = Vector();
 }
 
 void UpdateIMU() {
   // Use RawCorrection() and last sensor data to calculate new values
 
-  float[7] new_data = RawCorrection();
+  std::array<float, 7> new_data = RawCorrection();
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
   Quaternion new_rot = Quaternion(new_data[3], new_data[4], new_data[5], new_data[6]);
   

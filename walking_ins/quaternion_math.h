@@ -26,17 +26,13 @@ public:
   Vector(float in_x, float in_y, float in_z);
 
   void Print();
-};
 
-class Transform {
-public:
-  Vector pos;
-  Quaternion rot;
-
-  Transform();
-  Transform(Vector in_pos, Quaternion in_rot);
-
-  void Print();
+  Vector operator+(const Vector& other) const {
+        return Vector(x + other.x, y + other.y, z + other.z);
+  }
+  Vector operator/(const float& other) const {
+        return Vector(x / other, y / other, z / other);
+  }
 };
 
 extern Quaternion EulerToQuaternion(float roll, float pitch, float yaw);

@@ -49,22 +49,6 @@ void Vector::Print() {
   Serial.println(" ]");
 }
 
-Transform::Transform() {
-  pos = Vector();
-  rot = Quaternion();
-}
-
-void Transform::Print() {
-  pos.Print();
-  Serial.println("-");
-  rot.Print();
-}
-
-Transform::Transform(Vector in_pos, Quaternion in_rot) {
-  pos = in_pos;
-  rot = in_rot;
-}
-
 Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), pitch (y), yaw (z), angles are in degrees
 {
   // Abbreviations for the various angular functions
