@@ -13,7 +13,6 @@
 #define MOVING_TOLERANCE 0.5  // in m/s^2
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
-#define SEND_TIME 1000        // Time in ms between sending data via bluetooth
 
 float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
@@ -35,7 +34,7 @@ uint32_t t_stopped = 0;     // Since when device has been still?
 float dt = 0;
 unsigned long t_last = 0;
 
-uint32_t t_sent = 0;     // Since when was the data last sent to the UI?
+
 
 void SetupIMU() {
   Wire.begin();           // Initialize comunication
@@ -219,22 +218,7 @@ void UpdateIMU() {
   //TODO: update last_corrected at the end
 
 
-  if(t_sent > TIME_SEND) { //send data if enough time has elapsed
-    float send_data = send_data[8];
-    send_data[0] = (float) millis();
-    send_data[1] = new_data[0];
-    send_data[2] = new_data[1];
-    send_data[3] = new_data[2];
-    send_data[4] = new_data[3];
-    send_data[5] = new_data[4];
-    send_data[6] = new_data[5];
-    send_data[7] = new_data[6];
-    t_sent = 0;
 
-    //TODO: call sendData
-  } else {
-    t_sent = millis();
-  }
   
 }
 
