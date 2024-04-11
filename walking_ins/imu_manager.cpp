@@ -10,7 +10,7 @@
 #define G_VALUE 9.825         // Helsinki
 
 #define SETUP_ITERATION 200
-#define MOVING_TOLERANCE 0.1  // in m/s^2
+#define MOVING_TOLERANCE 0.5  // in m/s^2
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
 float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
@@ -141,6 +141,7 @@ void SetupCalibration() {
     std::array<int16_t, 6> raw_data = ReadSensor();
     linear_acc = linear_acc + Vector(raw_data[0], raw_data[1], raw_data[2]) / SETUP_ITERATION;
     angular_vel = angular_vel + Vector(raw_data[3], raw_data[4], raw_data[5] / SETUP_ITERATION);
+    delay(1);
   }
 
   Vector normalized_g = Vector(0, 0, 1);
@@ -162,6 +163,28 @@ void UpdateIMU() {
   std::array<float, 7> new_data = RawCorrection();
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
   Quaternion new_rot = Quaternion(new_data[3], new_data[4], new_data[5], new_data[6]);
+
+  if(MomentarilyStationary(new_accel)) {
+    //true branch, check if STOP_TIME has elapsed
+    if(t_stopped == 0) {
+      t_stopped = millis();
+    }
+    else if(t_stopped > 0) {
+      if(millis() - t_stopped >= STOP_TIME) {
+        device_moving = false;
+      }
+      else if(millis() < t_stopped) { //overflow branch
+        if(UINT_MAX + millis() - t_stopped >= STOP_TIME) {
+          device_moving = false;
+        }
+      } 
+    }
+  }
+  else {
+    //false branch, device is moving
+    device_moving = true;
+    t_stopped = 0;
+  }
 
   if(DEBUG_MODE) {
     Serial.print("x:");
