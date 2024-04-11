@@ -3,12 +3,18 @@ from tkinter import ttk
 
 ### LISÄTTY 14.2. ###
 import numpy as np
-from matplotlib import pyplot as plt
 import matplotlib
 matplotlib.use("TkAgg")
-#from matplotlib import pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg 
+
+from matplotlib import pyplot as plt
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+import matplotlib.animation as animation
+
+
+
+import time
 ### ------------- ###
 
 
@@ -17,6 +23,28 @@ selectionbar_color = '#81a2b5'
 sidebar_color = '#81a2b5'
 header_color = '#81a2b5'
 visualisation_frame_color = '#ffffff'
+
+
+img = plt.imread("GUI Resources/pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map"
+
+f = Figure(figsize=(10,10), dpi=100)
+a = f.add_subplot(111)
+
+def animate(i):
+    pullData = open("sampleText.txt","r").read()
+    dataArray = pullData.split('\n')
+    xar = []
+    yar = []
+    for eachLine in dataArray:
+        if len(eachLine)>1:
+                x,y = eachLine.split(',')
+                xar.append(int(x))
+                yar.append(int(y))
+    a.clear()
+    a.plot(xar,yar,'o',linewidth=5,color='firebrick')
+    #a.axes.imshow(img, extent=[0, 4.0, 0, 4.0])
+
+
 
 class TestiSovellus(tk.Tk):
     def __init__(self):
@@ -71,18 +99,6 @@ class TestiSovellus(tk.Tk):
                                                     "Set Scale"])
         submenu2.place(relx=0, rely=0.325, relwidth=1, relheight=0.3)
 
-   
-        '''
-        submenu1.options["Display frame #1"].config(
-            command=lambda: self.show_frame(Frame1)
-        )
-
-        submenu1.options["Display frame #2"].config(
-            command=lambda: self.show_frame(Frame2)
-        )
-        submenu1.place(relx=0, rely=0.025, relwidth=1, relheight=0.3)
-        '''
-
 
         # MULTI PAGE SETTINGS
         # MAIN FRAME
@@ -116,19 +132,16 @@ class Frame1(tk.Frame):
         label.pack()      
 
         # CREATING FIGURE #1
-        img = plt.imread("GUI Resources/pohjakuva2.PNG") #ladataan kuva # pitää linkittää komentoon "Load Map"
-
-        f = Figure(figsize=(10,10), dpi=100)
-        a = f.add_subplot(111)
-        a.axes.imshow(img, extent=[0, 4.0, 0, 4.0]) #asetetaan akselit (m) pitää linkittää komentoon "Set Axes"   
-        a.plot([1],[1],'o',linewidth=5,color='firebrick')
+        #asetetaan akselit (m) pitää linkittää komentoon "Set Axes"   
 
         canvas = FigureCanvasTkAgg(f, self)
         canvas.draw()
+        #canvas.show()
         canvas.get_tk_widget().pack()
+        canvas._tkcanvas.pack()
 
-# PATH
 
+# PATH 
 class Frame2(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
@@ -140,16 +153,20 @@ class Frame2(tk.Frame):
         x = np.linspace(0.5, 3.0, num=20)
         y = 0.9*x 
 
-        f = Figure(figsize=(10,10), dpi=100)
-        a = f.add_subplot(111)
+        f2 = Figure(figsize=(10,10), dpi=100)
+        a2 = f2.add_subplot(111)
 
-        a.axes.imshow(img, extent=[0, 4.0, 0, 4.0]) #asetetaan akselit (m) pitää linkittää komentoon "Set Axes"
+        a2.axes.imshow(img, extent=[0, 4.0, 0, 4.0]) #asetetaan akselit (m) pitää linkittää komentoon "Set Axes"
     
-        a.plot(x,y,'o',color='firebrick')
-        canvas = FigureCanvasTkAgg(f, self)
+        a2.plot(x,y,'o',color='firebrick')
+        canvas = FigureCanvasTkAgg(f2, self)
 
         canvas.draw()
         canvas.get_tk_widget().pack()
+        canvas._tkcanvas.pack()
+
+
+
 
 
 #--------------------------------------------------------------------------------------------
@@ -189,5 +206,6 @@ class sidebarSubMenu(tk.Frame):
 
 
 root = TestiSovellus()
+ani = animation.FuncAnimation(f, animate, interval=1000)
 root.mainloop()
 
