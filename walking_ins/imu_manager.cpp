@@ -191,6 +191,11 @@ void UpdateIMU() {
   std::array<float, 7> new_data = RawCorrection();
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
   Quaternion new_rot = Quaternion(new_data[3], new_data[4], new_data[5], new_data[6]);
+
+  new_accel.Print();
+  new_rot.Print();
+  Serial.println();
+  Serial.println();
   
   //TODO: update last_corrected at the end
 }
