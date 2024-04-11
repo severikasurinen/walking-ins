@@ -124,7 +124,6 @@ std::array<float, 7> RawCorrection() {
   return out_data;
 }
 
-
 bool MomentarilyStationary(Vector in_accel) { //returns true if the norm of the linear acceleration is g within tolerance
   float norm = in_accel.Norm();
   if((norm + MOVING_TOLERANCE < G_VALUE) || (norm - MOVING_TOLERANCE > G_VALUE)) {
@@ -133,7 +132,6 @@ bool MomentarilyStationary(Vector in_accel) { //returns true if the norm of the 
     return false;
   }
 }
-
 
 void SetupCalibration() {
   Vector linear_acc = Vector();
@@ -148,7 +146,7 @@ void SetupCalibration() {
   Vector normalized_g = Vector(0, 0, 1);
   
   accel_multiplier = G_VALUE / linear_acc.Norm();
-  gyro_offset = angular_vel / SETUP_ITERATION; //averaged angular velocity values
+  gyro_offset = angular_vel / SETUP_ITERATION * gyro_multiplier; //averaged angular velocity values
   rot_offset = OffsetQ(linear_acc / SETUP_ITERATION, normalized_g);
 }
 
