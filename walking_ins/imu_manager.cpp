@@ -141,11 +141,9 @@ void SetupCalibration() {
   
   for (int i = 0; i < SETUP_ITERATION; i++) {
     std::array<int16_t, 6> raw_data = ReadSensor();
-    linear_acc = linear_acc + Vector(raw_data[0], raw_data[1], raw_data[2]);
-    angular_vel = angular_vel + Vector(raw_data[3], raw_data[4], raw_data[5]);
+    linear_acc = linear_acc + Vector(raw_data[0], raw_data[1], raw_data[2]) / SETUP_ITERATION;
+    angular_vel = angular_vel + Vector(raw_data[3], raw_data[4], raw_data[5] / SETUP_ITERATION);
   }
-  linear_acc = linear_acc / SETUP_ITERATION;
-  angular_vel = angular_vel / SETUP_ITERATION;
 
   Vector normalized_g = Vector(0, 0, 1);
   
