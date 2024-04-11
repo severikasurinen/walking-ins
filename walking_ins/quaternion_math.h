@@ -12,11 +12,13 @@ public:
 
   Quaternion();
   Quaternion(float in_w, float in_x, float in_y, float in_z);
-
   void Print();
 
-  float Dot(Quaternion other);
-  float Norm();
+  Quaternion GetProduct(Quaternion other);
+  Quaternion GetConjugate();
+  float GetMagnitude();
+  void Normalize();
+  Quaternion GetNormalized();
 };
 
 class Vector {
@@ -27,25 +29,28 @@ public:
 
   Vector();
   Vector(float in_x, float in_y, float in_z);
-
   void Print();
 
-  float Dot(Vector other);
-  Vector Cross(Vector other);
-  float Norm();
+  Quaternion ToQuaternion();
+  float GetMagnitude();
+  void Normalize();
+  Vector GetNormalized();
+  float DotProduct(Vector other);
+  Vector CrossProduct(Vector other);
+  void Rotate(Quaternion q);
+  Vector GetRotated(Quaternion q);
 
   Vector operator+(const Vector& other) const {
         return Vector(x + other.x, y + other.y, z + other.z);
   }
-  Vector operator/(const float& other) const {
-        return Vector(x / other, y / other, z / other);
-  }
   Vector operator*(const float& other) const {
         return Vector(x * other, y * other, z * other);
   }
+  Vector operator/(const float& other) const {
+        return Vector(x / other, y / other, z / other);
+  }
 };
 
-extern Quaternion EulerToQuaternion(float roll, float pitch, float yaw);
 extern Quaternion OffsetQ(Vector sensorRead, Vector g);
 
 #endif

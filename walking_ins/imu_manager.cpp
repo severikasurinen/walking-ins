@@ -109,7 +109,7 @@ std::array<float, 7> RawCorrection() {
   corrected_gyro.y = corrected_gyro.y * gyro_multiplier - gyro_offset.y;
   corrected_gyro.z = corrected_gyro.z * gyro_multiplier - gyro_offset.z;
 
-  Quaternion corrected_rot = Quaternion(EulerToQuaternion(corrected_gyro.x, corrected_gyro.y, corrected_gyro.z));
+  Quaternion corrected_rot = corrected_gyro.ToQuaternion();
 
   std::array<float, 7> out_data = {
     corrected_accel.x,
@@ -125,7 +125,7 @@ std::array<float, 7> RawCorrection() {
 }
 
 bool MomentarilyStationary(Vector in_accel) { //returns true if the norm of the linear acceleration is g within tolerance
-  float norm = in_accel.Norm();
+  float norm = in_accel.GetMagnitude();
   if(abs(G_VALUE - norm) < MOVING_TOLERANCE) {
     return true;
   } else {
@@ -146,7 +146,7 @@ void SetupCalibration() {
 
   Vector normalized_g = Vector(0, 0, 1);
   
-  accel_multiplier = G_VALUE / linear_acc.Norm();
+  accel_multiplier = G_VALUE / linear_acc.GetMagnitude();
   gyro_offset = angular_vel / SETUP_ITERATION * gyro_multiplier; //averaged angular velocity values
   rot_offset = OffsetQ(linear_acc / SETUP_ITERATION, normalized_g);
 }
