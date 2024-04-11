@@ -16,10 +16,6 @@ void setup() {
 
   pinMode(POWER_LED, OUTPUT);
   digitalWrite(POWER_LED, HIGH);
-
-  if (DEBUG_MODE) {
-    SetupCalibration();
-  }
 }
 
 void loop() {
@@ -31,17 +27,15 @@ void loop() {
         esp_deep_sleep_start();  // Power off to save battery
       }
       else {
-        if (DEBUG_MODE) {
-          delay(100);
-          UpdateIMU();
-        } else {
-          delay(5000);
-        }
+        delay(5000);
       }
       break;
     case 1: // connected, standby
       delay(100);
-      SendData(millis());
+
+      device_state = 2; // TODO: Utilize control
+      SetupCalibration();
+
       break;
     case 2: // active measurement
       if (device_moving) {
