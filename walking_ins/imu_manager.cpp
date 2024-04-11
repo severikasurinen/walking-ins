@@ -126,7 +126,7 @@ std::array<float, 7> RawCorrection() {
 
 
 bool MomentarilyStationary(Vector in_accel) { //returns true if the norm of the linear acceleration is g within tolerance
-  float norm = sqrt(VectorDot(in_accel, in_accel));
+  float norm = in_accel.Norm();
   if((norm + MOVING_TOLERANCE < G_VALUE) || (norm - MOVING_TOLERANCE > G_VALUE)) {
     return true;
   } else {

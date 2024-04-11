@@ -49,6 +49,15 @@ void Vector::Print() {
   Serial.println(" ]");
 }
 
+float Vector::Dot(Vector other) {
+  return x * other.x + y * other.y + z * other.z;
+}
+
+float Vector::Norm() {
+  Vector v(x, y, z);
+  return sqrt(v.Dot(v));
+}
+
 Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), pitch (y), yaw (z), angles are in degrees
 {
   // Abbreviations for the various angular functions
@@ -67,14 +76,6 @@ Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), p
   q.z = cr * cp * sy - sr * sp * cy;
 
   return q;
-}
-
-float VectorDot(Vector v1, Vector v2)
-{
-  float dot;
-  dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-
-  return dot;
 }
 
 float QuaternionDot(Quaternion q1, Quaternion q2)
@@ -101,9 +102,9 @@ Quaternion OffsetQ(Vector sensorRead, Vector g) // algorithm to generate the off
   Vector c; //c for cross product
   c = CrossProd(sensorRead, g);
 
-  float norm_s = VectorDot(sensorRead, sensorRead);
-  float norm_g = VectorDot(g,g);
-  float dot_sg = VectorDot(sensorRead, g); 
+  float norm_s = sensorRead.Dot(sensorRead);
+  float norm_g = g.Dot(g);
+  float dot_sg = sensorRead.Dot(g);
 
   Quaternion offset; //the unnormalized local to global rotation quaternion
   offset.w = sqrt(norm_s * norm_g) + dot_sg;
