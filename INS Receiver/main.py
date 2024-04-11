@@ -1,4 +1,5 @@
 import asyncio
+import csv
 from bleak import BleakScanner
 from bleak import BleakClient
 
@@ -22,17 +23,43 @@ async def connect(address):
         await client.connect()
         device_connected = True
 
+        ## ## ## ## ## ## ##
         ## AVATAAN TIEDOSTO, JONNE DATAA RUVETAAN KIRJOITTAMAAN
-        file = open("DATA_COLLECTION.txt", "w")
+        #file = open("DATA_COLLECTION.txt", "w")
  
-        i = 0
-        while i < 50: # i kpl lukupisteitä; rakenne voidaan muuttaa myöhemmin "while a == true" -tyyppiseksi
-            current_data = list(await client.read_gatt_char(DATA_UUID))
-            mills = (current_data[0])*1+(current_data[1])*256+(current_data[2])*(256**2)+(current_data[3])*(256**3)        
-            #print("Aikaa on kulunut: " + str(mills) + " ms") ## DEBUGGAUSTA VARTEN
-            file.write("Aikaa on kulunut: " + str(mills) + " ms\n") # kysy joltain joka tietää; miten kannattaisi tehdä? ensin puskuri, sitten vasta kirjoitus??
-            i += 1
-        file.close()
+        #i = 0
+        #while i < 50: # i kpl lukupisteitä; rakenne voidaan muuttaa myöhemmin "while a == true" -tyyppiseksi
+        #    current_data = list(await client.read_gatt_char(DATA_UUID))
+        #    mills = (current_data[0])*1+(current_data[1])*256+(current_data[2])*(256** 2)+(current_data[3])*(256**3)        
+        #    #print("Aikaa on kulunut: " + str(mills) + " ms") ## DEBUGGAUSTA VARTEN
+        #    file.write("Aikaa on kulunut: " + str(mills) + " ms\n") # kysy joltain joka tietää; miten kannattaisi tehdä? ensin puskuri, sitten vasta kirjoitus??
+        #    i += 1
+        #file.close()
+
+        ## ## ## ## ## ## ##
+
+        # field names
+        fields = ['X', 'Y', 'TIME']
+        # name of csv file
+        filename = "DATA_COLLECTION.csv"
+        # writing to csv file
+        with open(filename, 'w') as csvfile:
+            # creating a csv writer object
+            csvwriter = csv.writer(csvfile)
+            # writing the fields
+            csvwriter.writerow(fields)
+            i = 0
+            while i < 50: # i kpl lukupisteitä; rakenne voidaan muuttaa myöhemmin "while a == true" -tyyppiseksi
+                current_data = list(await client.read_gatt_char(DATA_UUID))
+                mills = (current_data[0])*1+(current_data[1])*256+(current_data[2])*(256** 2)+(current_data[3])*(256**3)
+                new_line = [[0, 0, mills]]            
+                # writing the data rows
+                csvwriter.writerows(new_line)
+                i = i + 1
+ 
+
+
+        ## RAKENNE: YHTEEN MUUTTUJAAN TALLENNETAAN VIIMEISIN X, Y -SIJAINTI ---> LIVE PLOTIN "ANIMATE" LUKEE TÄMÄN JA PÄIVITTÄÄ KARTTAA
         print(device_connected) # true, jos laite oli yhdistettynä  --->  poista myöhemmin
 
     except Exception as e:
