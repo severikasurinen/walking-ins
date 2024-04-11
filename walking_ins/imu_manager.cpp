@@ -89,26 +89,6 @@ std::array<int16_t, 6> ReadSensor() {
   }
         
   t_last = micros();
-
-  if(DEBUG_MODE) {
-    Serial.print("x:");
-    Serial.print(out_data[0]);
-    Serial.print(",");
-    Serial.print("y:");
-    Serial.print(out_data[1]);
-    Serial.print(",");
-    Serial.print("z:");
-    Serial.print(out_data[2]);
-    Serial.print(",");
-    Serial.print("a:");
-    Serial.print(out_data[3]);
-    Serial.print(",");
-    Serial.print("b:");
-    Serial.print(out_data[4]);
-    Serial.print(",");
-    Serial.print("c:");
-    Serial.println(out_data[5]);
-  }
   
   return out_data;
 }
@@ -145,10 +125,8 @@ std::array<float, 7> RawCorrection() {
 }
 
 
-bool MomentarilyStationary() { //returns true if the norm of the linear acceleration is g within tolerance
-  std::array<float, 7> sensor_data = RawCorrection();
-  Vector linear_acc = Vector(sensor_data[0], sensor_data[1], sensor_data[2]); //read linear acceleration
-  float norm = sqrt(VectorDot(linear_acc, linear_acc));
+bool MomentarilyStationary(Vector in_accel) { //returns true if the norm of the linear acceleration is g within tolerance
+  float norm = sqrt(VectorDot(in_accel, in_accel));
   if((norm + MOVING_TOLERANCE < G_VALUE) || (norm - MOVING_TOLERANCE > G_VALUE)) {
     return true;
   } else {
@@ -192,11 +170,31 @@ void UpdateIMU() {
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
   Quaternion new_rot = Quaternion(new_data[3], new_data[4], new_data[5], new_data[6]);
 
-  new_accel.Print();
-  new_rot.Print();
-  Serial.println(MomentarilyStationary());
-  Serial.println();
-  Serial.println();
+  if(DEBUG_MODE) {
+    Serial.print("x:");
+    Serial.print(new_accel.x);
+    Serial.print(",");
+    Serial.print("y:");
+    Serial.print(new_accel.y);
+    Serial.print(",");
+    Serial.print("z:");
+    Serial.print(new_accel.z);
+    Serial.print(",");
+    Serial.print("w:");
+    Serial.print(new_rot.w);
+    Serial.print(",");
+    Serial.print("a:");
+    Serial.print(new_rot.x);
+    Serial.print(",");
+    Serial.print("b:");
+    Serial.print(new_rot.y);
+    Serial.print(",");
+    Serial.print("c:");
+    Serial.print(new_rot.z);
+    Serial.print(",");
+    Serial.print("mov:");
+    Serial.println(MomentarilyStationary(new_accel));
+  }
   
   //TODO: update last_corrected at the end
 }
