@@ -14,6 +14,9 @@ public:
   Quaternion(float in_w, float in_x, float in_y, float in_z);
 
   void Print();
+
+  float Dot(Quaternion other);
+  float Norm();
 };
 
 class Vector {
@@ -26,7 +29,9 @@ public:
   Vector(float in_x, float in_y, float in_z);
 
   void Print();
+
   float Dot(Vector other);
+  Vector Cross(Vector other);
   float Norm();
 
   Vector operator+(const Vector& other) const {
@@ -38,8 +43,6 @@ public:
 };
 
 extern Quaternion EulerToQuaternion(float roll, float pitch, float yaw);
-extern float QuaternionDot(Quaternion q1, Quaternion q2);
-extern Vector CrossProd(Vector v1, Vector v2);
 extern Quaternion OffsetQ(Vector sensorRead, Vector g);
 
 #endif

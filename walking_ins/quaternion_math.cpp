@@ -15,6 +15,20 @@ Quaternion::Quaternion(float in_w, float in_x, float in_y, float in_z) {
   z = in_z;
 }
 
+float Quaternion::Dot(Quaternion other)
+{
+  float dot;
+  dot = w * other.w + x * other.x + y * other.y + z * other.z;
+
+  return dot;
+}
+
+float Quaternion::Norm()
+{
+  Quaternion q = Quaternion(w, x, y, z);
+  return sqrt(q.Dot(q));
+}
+
 void Quaternion::Print() {
   Serial.print("Quaternion: [ ");
   Serial.print(w);
@@ -53,6 +67,16 @@ float Vector::Dot(Vector other) {
   return x * other.x + y * other.y + z * other.z;
 }
 
+Vector Vector::Cross(Vector other)
+{
+  Vector c;
+  c.x = y * other.z - z * other.y;
+  c.y = x * other.z - z * other.x;
+  c.z = x * other.y - y * other.x;
+
+  return c;
+}
+
 float Vector::Norm() {
   Vector v(x, y, z);
   return sqrt(v.Dot(v));
@@ -78,29 +102,9 @@ Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), p
   return q;
 }
 
-float QuaternionDot(Quaternion q1, Quaternion q2)
-{
-  float dot;
-  dot = q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z;
-
-  return dot;
-}
-
-Vector CrossProd(Vector v1, Vector v2)
-{
-  Vector c;
-  c.x = v1.y * v2.z - v1.z * v2.y;
-  c.y = v1.x * v2.z - v1.z * v2.x;
-  c.z = v1.x * v2.y - v1.y * v2.x;
-
-  return c;
-}
-
 Quaternion OffsetQ(Vector sensorRead, Vector g) // algorithm to generate the offset quaternion from vectors sensorRead and g
 {
-
-  Vector c; //c for cross product
-  c = CrossProd(sensorRead, g);
+  Vector c = sensorRead.Cross(g);
 
   float norm_s = sensorRead.Dot(sensorRead);
   float norm_g = g.Dot(g);
@@ -112,7 +116,7 @@ Quaternion OffsetQ(Vector sensorRead, Vector g) // algorithm to generate the off
   offset.y = c.y;
   offset.z = c.z;
 
-  float norm_o = sqrt(QuaternionDot(offset, offset));
+  float norm_o = offset.Norm();
 
   Quaternion normalized_offset;
   normalized_offset.w = (1/norm_o)*offset.w;
