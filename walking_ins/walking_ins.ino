@@ -16,6 +16,10 @@ void setup() {
 
   pinMode(POWER_LED, OUTPUT);
   digitalWrite(POWER_LED, HIGH);
+
+  if (DEBUG_MODE) {
+    SetupCalibration();
+  }
 }
 
 void loop() {

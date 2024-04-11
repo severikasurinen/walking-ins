@@ -9,8 +9,9 @@
 
 #define G_VALUE 9.825         // Helsinki
 
-#define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 #define SETUP_ITERATION 200
+#define MOVING_TOLERANCE 0.1  // in m/s^2
+#define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
 float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
@@ -144,16 +145,15 @@ std::array<float, 7> RawCorrection() {
 }
 
 
-bool MomentarilyStationary(float tolerance, float g) { //returns true if the norm of the linear acceleration is g within tolerance
+bool MomentarilyStationary() { //returns true if the norm of the linear acceleration is g within tolerance
   std::array<float, 7> sensor_data = RawCorrection();
   Vector linear_acc = Vector(sensor_data[0], sensor_data[1], sensor_data[2]); //read linear acceleration
   float norm = sqrt(VectorDot(linear_acc, linear_acc));
-  if((norm + tolerance < g) || (norm - tolerance > g)) {
+  if((norm + MOVING_TOLERANCE < G_VALUE) || (norm - MOVING_TOLERANCE > G_VALUE)) {
     return true;
   } else {
     return false;
   }
-
 }
 
 
@@ -194,6 +194,7 @@ void UpdateIMU() {
 
   new_accel.Print();
   new_rot.Print();
+  Serial.println(MomentarilyStationary());
   Serial.println();
   Serial.println();
   
