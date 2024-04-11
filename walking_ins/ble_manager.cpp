@@ -63,7 +63,7 @@ void SetupBLE() {
   Serial.println("'.");
 }
 
-void SendData(uint32_t in_data) {
-  dataCharacteristic.setValue(in_data);
+void SendData(uint8_t* data, size_t length) {
+  dataCharacteristic.setValue(data, length);
   dataCharacteristic.notify();
 }
