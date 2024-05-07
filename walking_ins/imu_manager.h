@@ -13,6 +13,11 @@ extern float accel_multiplier;
 extern Vector gyro_offset;
 extern Quaternion rot_offset;
 
+extern Vector stopped_position;
+
+extern Vector acceleration;
+extern Vector angular_velocity;
+
 extern Vector velocity;
 extern Vector position;
 extern Quaternion rotation;
@@ -24,7 +29,7 @@ extern unsigned long t_last;
 
 extern void SetupIMU();
 std::array<int16_t, 6> ReadSensor();
-std::array<float, 7> RawCorrection();
+std::array<float, 6> RawCorrection();
 bool MomentarilyStationary(float tolerance, float g);
 extern void SetupCalibration();
 void PartialCalibration();

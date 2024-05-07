@@ -37,6 +37,7 @@ public:
   Vector GetNormalized();
   float DotProduct(Vector other);
   Vector CrossProduct(Vector other);
+  Vector Average(Vector other);
   void Rotate(Quaternion q);
   Vector GetRotated(Quaternion q);
 
@@ -51,6 +52,6 @@ public:
   }
 };
 
-extern Quaternion OffsetQ(Vector sensorRead, Vector g);
+extern Quaternion GetRotationBetween(Vector a, Vector b);
 
 #endif

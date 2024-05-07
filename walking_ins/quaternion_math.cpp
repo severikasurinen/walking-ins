@@ -128,11 +128,14 @@ Vector Vector::CrossProduct(Vector other) {
     x * other.y - y * other.x);
 }
 
+Vector Vector::Average(Vector other) {
+  return Vector((x + other.x) / 2.0, (y + other.y) / 2.0, (z + other.z) / 2.0);
+}
+
 void Vector::Rotate(Quaternion q) {
   Quaternion p = Quaternion(0, x, y, z);
 
-  p = q.GetProduct(p);
-  p = p.GetProduct(q.GetConjugate());
+  p = q.GetConjugate().GetProduct(p).GetProduct(q);
 
   x = p.x;
   y = p.y;
@@ -145,28 +148,9 @@ Vector Vector::GetRotated(Quaternion q) {
   return n;
 }
 
-
-Quaternion OffsetQ(Vector sensorRead, Vector g) // algorithm to generate the offset quaternion from vectors sensorRead and g
+Quaternion GetRotationBetween(Vector a, Vector b)
 {
-  Vector c = sensorRead.CrossProduct(g);
-
-  float norm_s = sensorRead.DotProduct(sensorRead);
-  float norm_g = g.DotProduct(g);
-  float dot_sg = sensorRead.DotProduct(g);
-
-  Quaternion offset; //the unnormalized local to global rotation quaternion
-  offset.w = sqrt(norm_s * norm_g) + dot_sg;
-  offset.x = c.x;
-  offset.y = c.y;
-  offset.z = c.z;
-
-  float norm_o = offset.GetMagnitude();
-
-  Quaternion normalized_offset;
-  normalized_offset.w = (1/norm_o)*offset.w;
-  normalized_offset.x = (1/norm_o)*offset.x;
-  normalized_offset.y = (1/norm_o)*offset.y;
-  normalized_offset.z = (1/norm_o)*offset.z;
-
-  return normalized_offset;
+  Vector crossVal = a.CrossProduct(b);
+  Quaternion q = { sqrt(pow(a.GetMagnitude(), 2.0) * pow(b.GetMagnitude(), 2.0)) + a.DotProduct(b), crossVal.x, crossVal.y, crossVal.z};
+  return q.GetNormalized();
 }

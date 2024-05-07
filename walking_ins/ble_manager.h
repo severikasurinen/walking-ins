@@ -25,6 +25,6 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
 extern void SetupBLE();
 
-extern void SendData(uint32_t in_data);
+extern void SendData(uint8_t* in_data, size_t length);
 
 #endif

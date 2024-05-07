@@ -1,4 +1,4 @@
-#define DEBUG_MODE true
+#define DEBUG_MODE false
 
 #include "quaternion_math.h"
 #include "ble_manager.h"
@@ -30,36 +30,70 @@ void loop() {
         esp_deep_sleep_start();  // Power off to save battery
       }
       else {
+        if (DEBUG_MODE) {
+          device_state = 2;
+        }
         delay(5000);
       }
       break;
     case 1: // connected, standby
       delay(100);
-
-      device_state = 2; // TODO: Utilize control
-      SetupCalibration();
-
       break;
-    case 2: // active measurement
-      if (device_moving) {
+    case 2: // starting measurement
+      SetupCalibration();
+      device_state = 3;
+      break;
+    case 3: // active measurement
+      UpdateIMU();
 
-      } else {
-          if(t_sent > TIME_SEND) { //send data if enough time has elapsed
-    float send_data = send_data[8];
-    send_data[0] = (float) millis();
-    send_data[1] = position[0];
-    send_data[2] = position[1];
-    send_data[3] = position[2];
-    send_data[4] = rotation[3];
-    send_data[5] = rotation[4];
-    send_data[6] = rotation[5];
-    send_data[7] = rotation[6];
-    t_sent = 0;
-    size_t length = 8;
-    
-  } else {
-    t_sent = millis();
-  }
+      if(!device_moving && millis() - t_sent >= SEND_TIME) { //send data if enough time has elapsed
+        uint8_t send_data[32];
+
+        uint8_t *temp_arr;
+        
+        unsigned long ul = millis();
+        temp_arr = reinterpret_cast<uint8_t*>(&ul);
+        for (int i = 0; i < 4; i++) {
+          send_data[i] = temp_arr[i];
+        }
+        float f = position.x;
+        temp_arr = reinterpret_cast<uint8_t*>(&f);
+        for (int i = 0; i < 4; i++) {
+          send_data[4+i] = temp_arr[i];
+        }
+        f = position.y;
+        temp_arr = reinterpret_cast<uint8_t*>(&f);
+        for (int i = 0; i < 4; i++) {
+          send_data[8+i] = temp_arr[i];
+        }
+        f = position.z;
+        temp_arr = reinterpret_cast<uint8_t*>(&f);
+        for (int i = 0; i < 4; i++) {
+          send_data[12+i] = temp_arr[i];
+        }
+        f = rotation.w;
+        temp_arr = reinterpret_cast<uint8_t*>(&f);
+        for (int i = 0; i < 4; i++) {
+          send_data[16+i] = temp_arr[i];
+        }
+        f = rotation.x;
+        temp_arr = reinterpret_cast<uint8_t*>(&f);
+        for (int i = 0; i < 4; i++) {
+          send_data[20+i] = temp_arr[i];
+        }
+        f = rotation.y;
+        temp_arr = reinterpret_cast<uint8_t*>(&f);
+        for (int i = 0; i < 4; i++) {
+          send_data[24+i] = temp_arr[i];
+        }
+        f = rotation.z;
+        temp_arr = reinterpret_cast<uint8_t*>(&f);
+        for (int i = 0; i < 4; i++) {
+          send_data[28+i] = temp_arr[i];
+        }
+        
+        SendData(send_data, 32);
+        t_sent = millis();
       }
       break;
     default:
