@@ -11,7 +11,7 @@
 
 #define SETUP_ITERATION 200
 #define PARTIAL_ITERATION 40
-#define MOVING_TOLERANCE 0.2  // in m/s^2
+#define MOVING_TOLERANCE 1.2  // in m/s^2
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
 

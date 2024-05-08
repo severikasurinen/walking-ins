@@ -132,19 +132,11 @@ Vector Vector::Average(Vector other) {
   return Vector((x + other.x) / 2.0, (y + other.y) / 2.0, (z + other.z) / 2.0);
 }
 
-void Vector::Rotate(Quaternion q) {
+Vector Vector::GetRotated(Quaternion q) {
   Quaternion p = Quaternion(0, x, y, z);
-
   p = q.GetConjugate().GetProduct(p).GetProduct(q);
 
-  x = p.x;
-  y = p.y;
-  z = p.z;
-}
-
-Vector Vector::GetRotated(Quaternion q) {
-  Vector n = Vector(x, y, z);
-  n.Rotate(q);
+  Vector n = Vector(p.x, p.y, p.z);
   return n;
 }
 

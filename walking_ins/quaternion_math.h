@@ -38,7 +38,6 @@ public:
   float DotProduct(Vector other);
   Vector CrossProduct(Vector other);
   Vector Average(Vector other);
-  void Rotate(Quaternion q);
   Vector GetRotated(Quaternion q);
 
   Vector operator+(const Vector& other) const {
