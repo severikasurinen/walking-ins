@@ -12,8 +12,8 @@
 #define SETUP_ITERATION 200
 #define PARTIAL_ITERATION_MIN 40
 #define PARTIAL_ITERATION_MAX 300
-#define MOVING_TOLERANCE 1.2  // in m/s^2
-#define CALIB_TOLERANCE 0.5  // in m/s^2
+#define MOVING_TOLERANCE 0.4  // in m/s^2
+#define CALIB_TOLERANCE 0.15  // in m/s^2
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
 
@@ -36,8 +36,7 @@ uint32_t t_stopped = 0;     // Since when device has been still?
 float dt = 0;
 unsigned long t_last = 0;
 
-uint8_t idel = 0;
-
+uint8_t print_iters = 0;
 
 
 void SetupIMU() {
@@ -262,7 +261,7 @@ void UpdateIMU() {
   }
 
   if (DEBUG_MODE) {
-    if (idel > 250) {
+    if (print_iters > 250) {
       Serial.print("x:");
       Serial.print(acceleration.x);
       Serial.print(",");
@@ -286,10 +285,10 @@ void UpdateIMU() {
       Serial.print("mov:");
       Serial.println(device_moving);
 
-      idel = 0;
+      print_iters = 0;
     }
     else {
-      idel++;
+      print_iters++;
     }
   }
 }

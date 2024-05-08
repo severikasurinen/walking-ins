@@ -27,6 +27,8 @@ extern uint32_t t_stopped;
 extern float dt;
 extern unsigned long t_last;
 
+extern uint8_t print_iters;
+
 extern void SetupIMU();
 std::array<int16_t, 6> ReadSensor();
 std::array<float, 6> RawCorrection();
