@@ -71,22 +71,22 @@ void loop() {
         for (int i = 0; i < 4; i++) {
           send_data[12+i] = temp_arr[i];
         }
-        f = rotation.w;
+        f = orientation.w;
         temp_arr = reinterpret_cast<uint8_t*>(&f);
         for (int i = 0; i < 4; i++) {
           send_data[16+i] = temp_arr[i];
         }
-        f = rotation.x;
+        f = orientation.x;
         temp_arr = reinterpret_cast<uint8_t*>(&f);
         for (int i = 0; i < 4; i++) {
           send_data[20+i] = temp_arr[i];
         }
-        f = rotation.y;
+        f = orientation.y;
         temp_arr = reinterpret_cast<uint8_t*>(&f);
         for (int i = 0; i < 4; i++) {
           send_data[24+i] = temp_arr[i];
         }
-        f = rotation.z;
+        f = orientation.z;
         temp_arr = reinterpret_cast<uint8_t*>(&f);
         for (int i = 0; i < 4; i++) {
           send_data[28+i] = temp_arr[i];

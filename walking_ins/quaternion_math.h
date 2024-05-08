@@ -51,6 +51,7 @@ public:
   }
 };
 
+extern Vector GetEuler(Quaternion q);
 extern Quaternion GetRotationBetween(Vector a, Vector b);
 
 #endif

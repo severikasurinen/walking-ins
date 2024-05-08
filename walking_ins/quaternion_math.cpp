@@ -140,6 +140,27 @@ Vector Vector::GetRotated(Quaternion q) {
   return n;
 }
 
+Vector GetEuler(Quaternion q) {
+  Vector xyz;
+
+  // roll (x-axis rotation)
+  float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+  float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+  xyz.x = atan2(sinr_cosp, cosr_cosp) / (2 * PI) * 360;
+
+  // pitch (y-axis rotation)
+  float sinp = sqrt(1 + 2 * (q.w * q.y - q.x * q.z));
+  float cosp = sqrt(1 - 2 * (q.w * q.y - q.x * q.z));
+  xyz.y = (2 * atan2(sinp, cosp) - M_PI / 2) / (2 * PI) * 360;
+
+  // yaw (z-axis rotation)
+  float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+  float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+  xyz.z = atan2(siny_cosp, cosy_cosp) / (2 * PI) * 360;
+
+  return xyz;
+}
+
 Quaternion GetRotationBetween(Vector a, Vector b)
 {
   Vector crossVal = a.CrossProduct(b);

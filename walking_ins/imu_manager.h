@@ -20,7 +20,7 @@ extern Vector angular_velocity;
 
 extern Vector velocity;
 extern Vector position;
-extern Quaternion rotation;
+extern Quaternion orientation;
 
 extern bool device_moving;
 extern uint32_t t_stopped;

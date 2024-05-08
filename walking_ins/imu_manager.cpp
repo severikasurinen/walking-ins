@@ -10,14 +10,17 @@
 #define G_VALUE 9.825         // Helsinki
 
 #define SETUP_ITERATION 200
-#define PARTIAL_ITERATION 40
+#define PARTIAL_ITERATION_MIN 40
+#define PARTIAL_ITERATION_MAX 300
 #define MOVING_TOLERANCE 1.2  // in m/s^2
+#define CALIB_TOLERANCE 0.5  // in m/s^2
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
 
 float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
 Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
+Quaternion rot_offset = Quaternion();
 
 Vector stopped_position = Vector();
 
@@ -26,7 +29,7 @@ Vector angular_velocity = Vector();
 
 Vector velocity = Vector();
 Vector position = Vector();
-Quaternion rotation = Quaternion();
+Quaternion orientation = Quaternion();
 
 bool device_moving = false;
 uint32_t t_stopped = 0;     // Since when device has been still?
@@ -125,9 +128,13 @@ std::array<float, 6> RawCorrection() {
   return out_data;
 }
 
-bool MomentarilyStationary(Vector in_accel) { //returns true if the norm of the linear acceleration is g within tolerance
+bool MomentarilyStationary(Vector in_accel, bool calib_accuracy = false) { //returns true if the norm of the linear acceleration is g within tolerance
   float norm = in_accel.GetMagnitude();
-  if(abs(G_VALUE - norm) < MOVING_TOLERANCE) {
+  bool tol = MOVING_TOLERANCE;
+  if (calib_accuracy) {
+    tol = CALIB_TOLERANCE;
+  }
+  if(abs(G_VALUE - norm) < tol) {
     return true;
   } else {
     return false;
@@ -149,9 +156,19 @@ void SetupCalibration() {
   
   accel_multiplier = G_VALUE / linear_acc.GetMagnitude();
   gyro_offset = angular_vel * gyro_multiplier; //averaged angular velocity values
-  rotation = GetRotationBetween(linear_acc, normalized_g);
+  rot_offset = GetRotationBetween(linear_acc, normalized_g);
 
   Serial.println("Setup calibration done.");
+
+  // Reset all necessary values
+  stopped_position = Vector();
+  acceleration = Vector();
+  angular_velocity = Vector();
+  velocity = Vector();
+  position = Vector();
+  orientation = Quaternion();
+  device_moving = false;
+  t_stopped = 1;
 }
 
 void PartialCalibration() {
@@ -161,16 +178,32 @@ void PartialCalibration() {
   position = stopped_position;
 
   Vector avg_acc = Vector();
-  for (int i = 0; i < PARTIAL_ITERATION; i++) {
-    std::array<int16_t, 6> raw_data = ReadSensor();
-    avg_acc = avg_acc + (Vector(raw_data[0], raw_data[1], raw_data[2]) / PARTIAL_ITERATION);
-    delay(5);
+  uint16_t avg_iterations = 0;
+  while (avg_iterations < PARTIAL_ITERATION_MAX) {
+    std::array<float, 6> new_data = RawCorrection();
+    Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
+    if(!MomentarilyStationary(new_accel)) {
+      break;
+    }
+    else if (MomentarilyStationary(new_accel, true)) {
+      avg_acc = avg_acc + new_accel;
+      avg_iterations++;
+      delay(5);
+    }
   }
-  
-  avg_acc = avg_acc.GetRotated(rotation);  // Apply rotation
+  // Perform orientation calibration if enough averaging iterations
+  if (avg_iterations >= PARTIAL_ITERATION_MIN) {
+    avg_acc = avg_acc / avg_iterations;
 
-  Vector normalized_g = Vector(0, 0, 1.0);
-  rotation = GetRotationBetween(avg_acc, normalized_g).GetProduct(rotation); // Fix rotation to align with gravity, while retaining yaw information.
+    // Reset orientation to align with ground
+    Vector euler_yaw = GetEuler(orientation);
+    euler_yaw = Vector(0, 0, euler_yaw.z);
+    orientation = euler_yaw.ToQuaternion();
+
+    // Calculate new rot_offset
+    Vector normalized_g = Vector(0, 0, 1.0);
+    rot_offset = GetRotationBetween(avg_acc.GetRotated(orientation), normalized_g); // Fix rotation to align with gravity, while retaining yaw information.
+  }
 }
 
 void UpdateIMU() {
@@ -198,18 +231,20 @@ void UpdateIMU() {
       }
     }
   }
-  else {
-    //false branch, device is moving
+  else
+  {
     device_moving = true;
     t_stopped = 0;
+  }
 
-    // Update rotation based on gyro data
+  if (device_moving) {
+    // Update orientation based on gyro data
     Vector new_gyro = Vector(new_data[3], new_data[4], new_data[5]);
     Vector avg_gyro = angular_velocity.Average(new_gyro);
-    rotation = (avg_gyro * dt).ToQuaternion().GetProduct(rotation);
+    orientation = (avg_gyro * dt).ToQuaternion().GetProduct(orientation);
 
     // Rotate acceleration to global orientation
-    new_accel = new_accel.GetRotated(rotation);
+    new_accel = new_accel.GetRotated(orientation.GetProduct(rot_offset));
     new_accel = Vector(new_accel.x, new_accel.y, new_accel.z - G_VALUE);
     Vector avg_accel = acceleration.Average(new_accel);
 
@@ -229,25 +264,24 @@ void UpdateIMU() {
   if (DEBUG_MODE) {
     if (idel > 250) {
       Serial.print("x:");
-      Serial.print(position.x);
+      Serial.print(acceleration.x);
       Serial.print(",");
       Serial.print("y:");
-      Serial.print(position.y);
+      Serial.print(acceleration.y);
       Serial.print(",");
       Serial.print("z:");
-      Serial.print(position.z);
+      Serial.print(acceleration.z);
       Serial.print(",");
-      Serial.print("w:");
-      Serial.print(rotation.w);
+
+      Vector euler_rot = GetEuler(orientation);
+      Serial.print("roll:");
+      Serial.print(euler_rot.x);
       Serial.print(",");
-      Serial.print("a:");
-      Serial.print(rotation.x);
+      Serial.print("pitch:");
+      Serial.print(euler_rot.y);
       Serial.print(",");
-      Serial.print("b:");
-      Serial.print(rotation.y);
-      Serial.print(",");
-      Serial.print("c:");
-      Serial.print(rotation.z);
+      Serial.print("yaw:");
+      Serial.print(euler_rot.z);
       Serial.print(",");
       Serial.print("mov:");
       Serial.println(device_moving);
