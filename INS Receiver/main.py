@@ -135,7 +135,7 @@ class Window(tk.Tk):
 
 def main():
     global csv_writer
-    with open('DATA_COLLECTION.csv', 'w') as csvfile:
+    with open('datastream.csv', 'w') as csvfile:
         csv_writer = csv.writer(csvfile)
         csv_writer.writerow(['TIME', 'X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
     asyncio.run(App().exec())
