@@ -6,7 +6,7 @@
 
 #define SLEEP_TIME 600  // DO NOT SET BELOW 15 SECONDS!!!
 #define POWER_LED 8
-#define SEND_TIME 1000        // Time in ms between sending data via bluetooth
+#define SEND_TIME 500        // Time in ms between sending data via bluetooth
 
 uint32_t t_sent = 0;     // Since when was the data last sent to the UI?
 
@@ -46,7 +46,7 @@ void loop() {
     case 3: // active measurement
       UpdateIMU();
 
-      if(!device_moving && millis() - t_sent >= SEND_TIME) { //send data if enough time has elapsed
+      if(millis() - t_sent >= SEND_TIME) { //send data if enough time has elapsed
         uint8_t send_data[32];
 
         uint8_t *temp_arr;
