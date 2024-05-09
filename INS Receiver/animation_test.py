@@ -43,7 +43,8 @@ def init():
 def animate(i):
 
     # nyt pisteet lasketaan i:n funktiona. 
-    # mitä pitää tehdä: kysytään pisteitä ble laitteelta.  
+    # mitä pitää tehdä: kysytään pisteitä ble laitteelta. 
+
     xpoint = 0.1 + 0.01*i 
     ypoint = 0.2 + 0.01*i         
     x = np.linspace(0, 2, 1000)

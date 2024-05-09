@@ -2,42 +2,79 @@ import asyncio
 import csv
 from bleak import BleakScanner
 from bleak import BleakClient
-import time
 import struct
+import tkinter as tk
+from tkinter.constants import DISABLED, NORMAL
+from tkinter import ttk
 
-address = "64:E8:33:00:66:B6" #ATA_S 
+address = "64:E8:33:00:66:B6"  # ATA_S
 
-SERVICE_UUID = "2e5dc756-78bd-405c-bb72-9641a6848842"   #service channel
-DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"      #data channel
-CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"   #config channel
+SERVICE_UUID = "2e5dc756-78bd-405c-bb72-9641a6848842"  # service channel
+DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"  # data channel
+CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 
 device_connected = False
+device_client = None
+csv_writer = None
 
-async def connect(address):
-    
-    client = BleakClient(address)
-    
-    try: 
-        await client.connect()
+
+async def connect(conn_address):
+    global device_connected, device_client
+
+    device_client = BleakClient(conn_address)
+
+    try:
+        await device_client.connect()
         device_connected = True
-        print(device_connected) # true jos yhdistetty
-        
+
         # writing control 1
-        await client.write_gatt_char(CONTROL_UUID,b'\x01')
-        
-        # odotetaan 4 sekuntia
-        time.sleep(4)
+        await device_client.write_gatt_char(CONTROL_UUID, b'\x01')
 
-        # avataan csv tiedosto mihin kirjoitetaan
-        with open('DATA_COLLECTION.csv', 'w') as csvfile:
+        return True
 
-            csvWriter = csv.writer(csvfile)
-            csvWriter.writerow(['TIME','X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
-        
-            for i in range(100):
-                
-                in_data = await client.read_gatt_char(DATA_UUID)
-                #print(in_data)
+    except Exception as e:
+        print(e)
+        return False
+
+
+async def disconnect(conn_address):
+    global device_connected, device_client
+
+    try:
+        await device_client.disconnect()
+        device_connected = False
+        device_client = None
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
+class App:
+    async def exec(self):
+        self.window = Window(asyncio.get_event_loop())
+        await self.window.show()
+
+
+class Window(tk.Tk):
+    def __init__(self, loop):
+        self.loop = loop
+        self.root = tk.Tk()
+        self.animation = "░▒▒▒▒▒"
+        self.label = tk.Label(text="")
+        self.label.grid(row=0, columnspan=2, padx=(8, 8), pady=(16, 0))
+        self.conn_button = tk.Button(text="Connect", width=15, bg='green',
+                                     command=lambda: self.loop.create_task(self.toggle_connection()))
+        self.conn_button.grid(row=2, column=1, sticky=tk.W, padx=8, pady=8)
+        self.control_button = tk.Button(text="Start", width=15, bg='gray',
+                                     command=lambda: self.loop.create_task(self.toggle_connection()))
+        self.control_button["state"] = DISABLED
+        self.control_button.grid(row=2, column=2, sticky=tk.W, padx=8, pady=8)
+
+    async def show(self):
+        while True:
+            if device_connected and device_client is not None:
+                in_data = await device_client.read_gatt_char(DATA_UUID)
 
                 timestamp = struct.unpack('<L', in_data[0:4])[0]
                 pos_x = struct.unpack('<f', in_data[4:8])[0]
@@ -48,34 +85,35 @@ async def connect(address):
                 rot_y = struct.unpack('<f', in_data[24:28])[0]
                 rot_z = struct.unpack('<f', in_data[28:32])[0]
 
-                csvWriter.writerows([[timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z]])
+                csv_writer.writerow([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
+            else:
+                timestamp = "None"
+            self.label["text"] = self.animation
+            self.animation = timestamp
+            self.root.update()
+            await asyncio.sleep(.1)
 
-                #print("Time -", timestamp)
-                #print("Position - x:", pos_x, "y:", pos_y, "z:", pos_z)
-                #print("Rotation - w:", rot_w, "x:", rot_x, "y:", rot_y, "z:", rot_z)
+    async def toggle_connection(self):
+        if device_connected:
+            if await disconnect(address):
+                self.conn_button["text"] = 'Connect'
+                self.conn_button["bg"] = 'green'
+        else:
+            if await connect(address):
+                self.conn_button["text"] = 'Disconnect'
+                self.conn_button["bg"] = 'red'
 
-        
- 
-        print(device_connected) # true, jos laite oli yhdistettynä  --->  poista myöhemmin
+                global csv_writer
+                with open('DATA_COLLECTION.csv', 'w') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    csv_writer.writerow(['TIME', 'X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
+        await asyncio.sleep(0)
 
-    except Exception as e:
-        print(e)
-    
-    finally:
-        # print("Kytken pois") # poista myöhemmin
-        await client.disconnect() # kytkee laitteen lopuksi pois
-
-
-async def disconnect(address):
-    client = BleakClient(address)
-    await client.disconnect()
-    device_connected = False 
-    print(device_connected) #poista myöhemmin 
 
 def main():
     # Main function
-    asyncio.run(connect(address)) 
-    asyncio.run(disconnect(address))
+    asyncio.run(App().exec())
+
 
 if __name__ == '__main__':
     main()
