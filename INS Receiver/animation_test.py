@@ -14,10 +14,10 @@ plt.rcParams["figure.autolayout"] = True
 root = tkinter.Tk()
 root.wm_title("Embedding in Tk")
 
-plt.axes(xlim=(0, 2), ylim=(-2, 2))
+plt.axes(xlim=(0, 4), ylim=(0, 4))
 fig = plt.Figure(dpi=100)
 ax = fig.add_subplot(xlim=(0, 4), ylim=(0, 4))
-line, = ax.plot([], [], lw=2)
+line, = ax.plot([], [],'o',linewidth=5,color='firebrick')
 ax.imshow(img, extent=[0, 4.0, 0, 4.0])
 
 canvas = FigureCanvasTkAgg(fig, master=root)
@@ -41,23 +41,16 @@ def init():
     return line,
 
 def animate(i):
-    '''
-    pullData = open("sampleText.txt","r").read()
-    dataArray = pullData.split('\n')
-    xar = []
-    yar = []
-    for eachLine in dataArray:
-        if len(eachLine)>1:
-                x,y = eachLine.split(',')
-                xar.append(int(x))
-                yar.append(int(y))'''
 
-
+    # nyt pisteet lasketaan i:n funktiona. 
+    # mitä pitää tehdä: kysytään pisteitä ble laitteelta.  
+    xpoint = 0.1 + 0.01*i 
+    ypoint = 0.2 + 0.01*i         
     x = np.linspace(0, 2, 1000)
     y = np.sin(2 * np.pi * (x - 0.01 * i))
-    line.set_data(x, y)
+    line.set_data(xpoint, ypoint)
     return line,
 
-anim = animation.FuncAnimation(fig, animate, init_func=init, frames=200, interval=200, blit=True)
+anim = animation.FuncAnimation(fig, animate, init_func=init, frames=200, interval=500, blit=True)
 
 tkinter.mainloop()
