@@ -46,7 +46,7 @@ void loop() {
     case 3: // active measurement
       UpdateIMU();
 
-      if(millis() - t_sent >= SEND_TIME) { //send data if enough time has elapsed
+      if(!device_moving && millis() - t_sent >= SEND_TIME) { //send data if enough time has elapsed
         uint8_t send_data[32];
 
         uint8_t *temp_arr;

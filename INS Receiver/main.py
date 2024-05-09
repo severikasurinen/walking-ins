@@ -20,8 +20,6 @@ CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 device_connected = False
 is_measuring = False
 device_client = None
-csv_writer = None
-
 data_points = []
 
 
@@ -32,7 +30,6 @@ async def connect(conn_address):
 
     try:
         await device_client.connect()
-
 
         return True
 
@@ -51,30 +48,27 @@ async def disconnect(conn_address):
     except Exception as e:
         print(e)
         return False
-    
 
-async def stop_measuring(conn_address):
-    global is_measuring, device_client
+
+async def stop_measuring():
+    global is_measuring
 
     try:
         await device_client.write_gatt_char(CONTROL_UUID, b'\x00')
-        is_measuring = False
-        device_client = None
         return True
-    
+
     except Exception as e:
         print(e)
         return False
 
 
-async def start_measuring(conn_address):
-    global is_measuring, device_client
+async def start_measuring():
+    global is_measuring
 
     try:
         await device_client.write_gatt_char(CONTROL_UUID, b'\x01')
-        is_measuring = True
         return True
-    
+
     except Exception as e:
         print(e)
         return False
@@ -102,13 +96,13 @@ class Window(tk.Tk):
                                      command=lambda: self.loop.create_task(self.toggle_connection()))
         self.conn_button.grid(row=2, column=0, sticky=tk.W, padx=8, pady=8)
         self.control_button = tk.Button(text="Start", width=15, bg='gray',
-                                     command=lambda: self.loop.create_task(self.control_connection()))
+                                        command=lambda: self.loop.create_task(self.toggle_measurement()))
         self.control_button["state"] = DISABLED
         self.control_button.grid(row=2, column=1, sticky=tk.W, padx=8, pady=8)
 
     async def show(self):
         while True:
-            if device_connected and device_client is not None:
+            if is_measuring:
                 in_data = await device_client.read_gatt_char(DATA_UUID)
                 if len(in_data) > 4:
                     timestamp = struct.unpack('<L', in_data[0:4])[0]
@@ -120,25 +114,28 @@ class Window(tk.Tk):
                     rot_y = struct.unpack('<f', in_data[24:28])[0]
                     rot_z = struct.unpack('<f', in_data[28:32])[0]
 
-                    data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
-                    #csv_writer.writerow(data_points[-1])
+                    if len(data_points) == 0 or data_points[-1][0] != timestamp:
+                        data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
+
+                        self.label["text"] = self.animation
+                        self.animation = timestamp
+
+                        x_scale = 20  # Scale for x-axis
+                        y_scale = 10  # Scale for y-axis
+                        x_offset = 700
+                        y_offset = 350
+
+                        # Draw data points and lines
+                        for i in range(len(data_points) - 1):
+                            a = data_points[i]
+                            b = data_points[i + 1]
+                            x1_scaled, y1_scaled = a[1] * x_scale + x_offset, y_offset - a[2] * y_scale
+                            x2_scaled, y2_scaled = b[1] * x_scale + x_offset, y_offset - b[2] * y_scale
+                            self.canvas.create_line(x1_scaled, y1_scaled, x2_scaled, y2_scaled, fill="red", width=2)
             else:
                 timestamp = "None"
-            self.label["text"] = self.animation
-            self.animation = timestamp
-
-            x_scale = 20  # Scale for x-axis
-            y_scale = 10  # Scale for y-axis
-            x_offset = 700
-            y_offset = 350
-
-            # Draw data points and lines
-            for i in range(len(data_points) - 1):
-                a = data_points[i]
-                b = data_points[i + 1]
-                x1_scaled, y1_scaled = a[1] * x_scale + x_offset, y_offset - a[2] * y_scale
-                x2_scaled, y2_scaled = b[1] * x_scale + x_offset, y_offset - b[2] * y_scale
-                self.canvas.create_line(x1_scaled, y1_scaled, x2_scaled, y2_scaled, fill="red", width=2)
+                self.label["text"] = self.animation
+                self.animation = timestamp
 
             self.root.update()
             await asyncio.sleep(0.1)
@@ -152,40 +149,45 @@ class Window(tk.Tk):
                 self.conn_button["text"] = 'Connect'
                 self.conn_button["bg"] = 'green'
                 self.control_button["state"] = DISABLED
-                self.control_button
+                self.control_button["bg"] = 'gray'
 
         else:
             if await connect(address):
                 device_connected = True
                 self.conn_button["text"] = 'Disconnect'
                 self.conn_button["bg"] = 'red'
-                self.control_connection["state"] = NORMAL
-                self.control_connection["bg"] = 'green'
+                self.control_button["state"] = NORMAL
+                self.control_button["bg"] = 'green'
 
-                global csv_writer
-                with open('DATA_COLLECTION.csv', 'w') as csvfile:
-                    csv_writer = csv.writer(csvfile)
-                    csv_writer.writerow(['TIME', 'X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
         await asyncio.sleep(0)
 
+    async def toggle_measurement(self):
+        global is_measuring, data_points
 
-    async def control_connection(self):
         if is_measuring:
-            if await stop_measuring(address):
-                self.conn_button["text"] = 'Start'
-                self.conn_button["bg"] = 'green'
-
-        else:
-            if await start_measuring(address):
-                self.conn_button["text"] = 'Stop'
+            if await stop_measuring():
+                is_measuring = False
+                self.control_button["text"] = 'Start'
+                self.control_button["bg"] = 'green'
                 self.conn_button["bg"] = 'red'
+                self.conn_button["state"] = NORMAL
+
+                with open('datastream.csv', 'w') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    csv_writer.writerow(['TIME', 'X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
+                    csv_writer.writerows(data_points)
+        else:
+            if await start_measuring():
+                self.canvas.delete("all")
+                data_points = []
+                is_measuring = True
+                self.control_button["text"] = 'Stop'
+                self.control_button["bg"] = 'red'
+                self.conn_button["bg"] = 'gray'
+                self.conn_button["state"] = DISABLED
 
 
 def main():
-    global csv_writer
-    with open('datastream.csv', 'w') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(['TIME', 'X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
     asyncio.run(App().exec())
 
 
