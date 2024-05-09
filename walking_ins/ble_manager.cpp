@@ -19,6 +19,7 @@ void MyServerCallbacks::onConnect(BLEServer *pServer) {
 };
 void MyServerCallbacks::onDisconnect(BLEServer *pServer) {
   device_state = 0;
+  BLEDevice::startAdvertising();
   last_action = millis();
   Serial.println("Device disconnected.");
 }
@@ -26,12 +27,20 @@ void MyServerCallbacks::onDisconnect(BLEServer *pServer) {
 void MyCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() > 0) {
-    Serial.println("*********");
-    Serial.print("New value: ");
-    for (int i = 0; i < value.length(); i++)
-      Serial.print(value[i]);
-    Serial.println();
-    Serial.println("*********");
+    if (value[0] == 0) {  // Received command to end measurement
+      device_state = 1;
+    }
+    else if (value[0] == 1) { // Received command to start measurement
+      device_state = 2;
+    }
+    else {
+      Serial.println("*********");
+      Serial.print("New value: ");
+      for (int i = 0; i < value.length(); i++)
+        Serial.print(value[i]);
+      Serial.println();
+      Serial.println("*********");
+    }
   }
 }
 
@@ -63,7 +72,7 @@ void SetupBLE() {
   Serial.println("'.");
 }
 
-void SendData(uint32_t in_data) {
-  dataCharacteristic.setValue(in_data);
+void SendData(uint8_t* data, size_t length) {
+  dataCharacteristic.setValue(data, length);
   dataCharacteristic.notify();
 }

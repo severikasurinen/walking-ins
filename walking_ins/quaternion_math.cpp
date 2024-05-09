@@ -27,6 +27,37 @@ void Quaternion::Print() {
   Serial.println(" ]");
 }
 
+Quaternion Quaternion::GetProduct(Quaternion other) {
+  return Quaternion(
+    w * other.w - x * other.x - y * other.y - z * other.z,
+    w * other.x + x * other.w - y * other.z + z * other.y,
+    w * other.y + x * other.z + y * other.w - z * other.x,
+    w * other.z - x * other.y + y * other.x + z * other.w);
+}
+
+Quaternion Quaternion::GetConjugate() {
+  return Quaternion(w, -x, -y, -z);
+}
+
+float Quaternion::GetMagnitude() {
+  return sqrt(w*w + x*x + y*y + z*z);
+}
+
+void Quaternion::Normalize() {
+  float m = GetMagnitude();
+  w /= m;
+  x /= m;
+  y /= m;
+  z /= m;
+}
+
+Quaternion Quaternion::GetNormalized() {
+  Quaternion n = Quaternion(w, x, y, z);
+  n.Normalize();
+  return n;
+}
+
+
 Vector::Vector() {
   x = 0.0f;
   y = 0.0f;
@@ -49,32 +80,16 @@ void Vector::Print() {
   Serial.println(" ]");
 }
 
-Transform::Transform() {
-  pos = Vector();
-  rot = Quaternion();
-}
-
-void Transform::Print() {
-  pos.Print();
-  Serial.println("-");
-  rot.Print();
-}
-
-Transform::Transform(Vector in_pos, Quaternion in_rot) {
-  pos = in_pos;
-  rot = in_rot;
-}
-
-Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), pitch (y), yaw (z), angles are in degrees
+Quaternion Vector::ToQuaternion()  // roll (x), pitch (y), yaw (z), angles are in degrees
 {
   // Abbreviations for the various angular functions
 
-  float cr = cos(roll * (2 * M_PI / 360) * 0.5);
-  float sr = sin(roll * (2 * M_PI / 360) * 0.5);
-  float cp = cos(pitch * (2 * M_PI / 360) * 0.5);
-  float sp = sin(pitch * (2 * M_PI / 360) * 0.5);
-  float cy = cos(yaw * (2 * M_PI / 360) * 0.5);
-  float sy = sin(yaw * (2 * M_PI / 360) * 0.5);
+  float cr = cos(x * (2 * M_PI / 360) * 0.5);
+  float sr = sin(x * (2 * M_PI / 360) * 0.5);
+  float cp = cos(y * (2 * M_PI / 360) * 0.5);
+  float sp = sin(y * (2 * M_PI / 360) * 0.5);
+  float cy = cos(z * (2 * M_PI / 360) * 0.5);
+  float sy = sin(z * (2 * M_PI / 360) * 0.5);
 
   Quaternion q;
   q.w = cr * cp * cy + sr * sp * sy;
@@ -85,58 +100,70 @@ Quaternion EulerToQuaternion(float roll, float pitch, float yaw)  // roll (x), p
   return q;
 }
 
-float VectorDot(Vector v1, Vector v2)
-{
-  float dot;
-  dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-
-  return dot;
+float Vector::GetMagnitude() {
+  return sqrt(x*x + y*y + z*z);
 }
 
-float QuaternionDot(Quaternion q1, Quaternion q2)
-{
-  float dot;
-  dot = q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z;
-
-  return dot;
+void Vector::Normalize() {
+  float m = GetMagnitude();
+  x /= m;
+  y /= m;
+  z /= m;
 }
 
-Vector CrossProd(Vector v1, Vector v2)
-{
-  Vector c;
-  c.x = v1.y * v2.z - v1.z * v2.y;
-  c.y = v1.x * v2.z - v1.z * v2.x;
-  c.z = v1.x * v2.y - v1.y * v2.x;
-
-  return c;
+Vector Vector::GetNormalized() {
+  Vector n = Vector(x, y, z);
+  n.Normalize();
+  return n;
 }
 
-Quaternion OffsetQ(Vector sensorRead, Vector g) // algorithm to generate the offset quaternion from vectors sensorRead and g
-{
-
-  Vector c; //c for cross product
-  c = CrossProd(sensorRead, g);
-
-  float norm_s = VectorDot(sensorRead, sensorRead);
-  float norm_g = VectorDot(g,g);
-  float dot_sg = VectorDot(sensorRead, g); 
-
-  Quaternion offset; //the unnormalized local to global rotation quaternion
-  offset.w = sqrt(norm_s * norm_g) + dot_sg;
-  offset.x = c.x;
-  offset.y = c.y;
-  offset.z = c.z;
-
-  float norm_o = sqrt(QuaternionDot(offset, offset));
-
-  Quaternion normalized_offset;
-  normalized_offset.w = (1/norm_o)*offset.w;
-  normalized_offset.x = (1/norm_o)*offset.x;
-  normalized_offset.y = (1/norm_o)*offset.y;
-  normalized_offset.z = (1/norm_o)*offset.z;
-
-  return normalized_offset;
+float Vector::DotProduct(Vector other) {
+  return x * other.x + y * other.y + z * other.z;
 }
 
+Vector Vector::CrossProduct(Vector other) {
+  return Vector(
+    y * other.z - z * other.y,
+    z * other.x - x * other.z,
+    x * other.y - y * other.x);
+}
 
+Vector Vector::Average(Vector other) {
+  return Vector((x + other.x) / 2.0, (y + other.y) / 2.0, (z + other.z) / 2.0);
+}
 
+Vector Vector::GetRotated(Quaternion q) {
+  Quaternion p = Quaternion(0, x, y, z);
+  p = q.GetConjugate().GetProduct(p).GetProduct(q);
+
+  Vector n = Vector(p.x, p.y, p.z);
+  return n;
+}
+
+Vector GetEuler(Quaternion q) {
+  Vector xyz;
+
+  // roll (x-axis rotation)
+  float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+  float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+  xyz.x = atan2(sinr_cosp, cosr_cosp) / (2 * PI) * 360;
+
+  // pitch (y-axis rotation)
+  float sinp = sqrt(1 + 2 * (q.w * q.y - q.x * q.z));
+  float cosp = sqrt(1 - 2 * (q.w * q.y - q.x * q.z));
+  xyz.y = (2 * atan2(sinp, cosp) - M_PI / 2) / (2 * PI) * 360;
+
+  // yaw (z-axis rotation)
+  float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+  float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+  xyz.z = atan2(siny_cosp, cosy_cosp) / (2 * PI) * 360;
+
+  return xyz;
+}
+
+Quaternion GetRotationBetween(Vector a, Vector b)
+{
+  Vector crossVal = a.CrossProduct(b);
+  Quaternion q = { sqrt(pow(a.GetMagnitude(), 2.0) * pow(b.GetMagnitude(), 2.0)) + a.DotProduct(b), crossVal.x, crossVal.y, crossVal.z};
+  return q.GetNormalized();
+}
