@@ -11,7 +11,7 @@
 uint32_t t_sent = 0;     // Since when was the data last sent to the UI?
 
 void setup() {
-  delay(3000);
+  delay(5000);
   Serial.begin(115200);
   Serial.println();
   SetupBLE();
