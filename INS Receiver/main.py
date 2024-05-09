@@ -3,6 +3,7 @@ import csv
 from bleak import BleakScanner
 from bleak import BleakClient
 import struct
+from datetime import datetime
 import tkinter as tk
 from tkinter.constants import DISABLED, NORMAL
 from tkinter import ttk
@@ -20,7 +21,7 @@ CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 device_connected = False
 is_measuring = False
 device_client = None
-data_points = []
+data_points = [[0, 0, 0, 0, 0, 0, 0, 0]]
 
 
 async def connect(conn_address):
@@ -84,14 +85,14 @@ class Window(tk.Tk):
     def __init__(self, loop):
         self.loop = loop
         self.root = tk.Tk()
-        self.animation = "░▒▒▒▒▒"
 
-        self.canvas = tk.Canvas(self.root, width=1400, height=700, bg="white")
+        self.canvas = tk.Canvas(self.root, width=1200, height=600, bg="white")
         self.canvas.pack()
         self.canvas.grid(row=1, columnspan=2, padx=(8, 8), pady=(16, 0))
 
         self.label = tk.Label(text="")
-        self.label.grid(row=0, columnspan=2, padx=(8, 8), pady=(16, 0))
+        self.label.grid(row=0, column=0, padx=(8, 8), pady=(16, 0))
+
         self.conn_button = tk.Button(text="Connect", width=15, bg='green',
                                      command=lambda: self.loop.create_task(self.toggle_connection()))
         self.conn_button.grid(row=2, column=0, sticky=tk.W, padx=8, pady=8)
@@ -101,41 +102,42 @@ class Window(tk.Tk):
         self.control_button.grid(row=2, column=1, sticky=tk.W, padx=8, pady=8)
 
     async def show(self):
+        global is_measuring
         while True:
+            timestamp = "None"
             if is_measuring:
-                in_data = await device_client.read_gatt_char(DATA_UUID)
-                if len(in_data) > 4:
-                    timestamp = struct.unpack('<L', in_data[0:4])[0]
-                    pos_x = struct.unpack('<f', in_data[4:8])[0]
-                    pos_y = struct.unpack('<f', in_data[8:12])[0]
-                    pos_z = struct.unpack('<f', in_data[12:16])[0]
-                    rot_w = struct.unpack('<f', in_data[16:20])[0]
-                    rot_x = struct.unpack('<f', in_data[20:24])[0]
-                    rot_y = struct.unpack('<f', in_data[24:28])[0]
-                    rot_z = struct.unpack('<f', in_data[28:32])[0]
+                try:
+                    in_data = await device_client.read_gatt_char(DATA_UUID)
+                    if len(in_data) > 4:
+                        timestamp = struct.unpack('<L', in_data[0:4])[0]
+                        pos_x = struct.unpack('<f', in_data[4:8])[0]
+                        pos_y = struct.unpack('<f', in_data[8:12])[0]
+                        pos_z = struct.unpack('<f', in_data[12:16])[0]
+                        rot_w = struct.unpack('<f', in_data[16:20])[0]
+                        rot_x = struct.unpack('<f', in_data[20:24])[0]
+                        rot_y = struct.unpack('<f', in_data[24:28])[0]
+                        rot_z = struct.unpack('<f', in_data[28:32])[0]
 
-                    if len(data_points) == 0 or data_points[-1][0] != timestamp:
-                        data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
+                        if data_points[-1][0] != timestamp:
+                            data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
 
-                        self.label["text"] = self.animation
-                        self.animation = timestamp
+                            x_scale = 20  # Scale for x-axis
+                            y_scale = 10  # Scale for y-axis
+                            x_offset = 600
+                            y_offset = 300
 
-                        x_scale = 20  # Scale for x-axis
-                        y_scale = 10  # Scale for y-axis
-                        x_offset = 700
-                        y_offset = 350
+                            # Draw data points and lines
+                            for i in range(len(data_points) - 1):
+                                a = data_points[i]
+                                b = data_points[i + 1]
+                                x1_scaled, y1_scaled = a[1] * x_scale + x_offset, y_offset - a[2] * y_scale
+                                x2_scaled, y2_scaled = b[1] * x_scale + x_offset, y_offset - b[2] * y_scale
+                                self.canvas.create_line(x1_scaled, y1_scaled, x2_scaled, y2_scaled, fill="red", width=2)
+                except Exception as e:
+                    print(e)
+                    # Error during measurement
 
-                        # Draw data points and lines
-                        for i in range(len(data_points) - 1):
-                            a = data_points[i]
-                            b = data_points[i + 1]
-                            x1_scaled, y1_scaled = a[1] * x_scale + x_offset, y_offset - a[2] * y_scale
-                            x2_scaled, y2_scaled = b[1] * x_scale + x_offset, y_offset - b[2] * y_scale
-                            self.canvas.create_line(x1_scaled, y1_scaled, x2_scaled, y2_scaled, fill="red", width=2)
-            else:
-                timestamp = "None"
-                self.label["text"] = self.animation
-                self.animation = timestamp
+            self.label["text"] = timestamp
 
             self.root.update()
             await asyncio.sleep(0.1)
@@ -172,14 +174,15 @@ class Window(tk.Tk):
                 self.conn_button["bg"] = 'red'
                 self.conn_button["state"] = NORMAL
 
-                with open('datastream.csv', 'w') as csvfile:
+                file_name = "data_" + datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv"
+                with open(file_name, 'w', newline='') as csvfile:
                     csv_writer = csv.writer(csvfile)
-                    csv_writer.writerow(['TIME', 'X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
+                    csv_writer.writerow(['timestamp', 'pos_x', 'pos_y', 'pos_z', 'rot_w', 'rot_x', 'rot_y', 'rot_z'])
                     csv_writer.writerows(data_points)
         else:
             if await start_measuring():
                 self.canvas.delete("all")
-                data_points = []
+                data_points = [[0, 0, 0, 0, 0, 0, 0, 0]]
                 is_measuring = True
                 self.control_button["text"] = 'Stop'
                 self.control_button["bg"] = 'red'
