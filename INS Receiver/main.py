@@ -18,6 +18,7 @@ DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"  # data channel
 CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 
 device_connected = False
+is_measuring = False
 device_client = None
 csv_writer = None
 
@@ -32,8 +33,6 @@ async def connect(conn_address):
     try:
         await device_client.connect()
 
-        # writing control 1
-        await device_client.write_gatt_char(CONTROL_UUID, b'\x01')
 
         return True
 
@@ -49,6 +48,33 @@ async def disconnect(conn_address):
     try:
         await device_client.disconnect()
         return True
+    except Exception as e:
+        print(e)
+        return False
+    
+
+async def stop_measuring(conn_address):
+    global is_measuring, device_client
+
+    try:
+        await device_client.write_gatt_char(CONTROL_UUID, b'\x00')
+        is_measuring = False
+        device_client = None
+        return True
+    
+    except Exception as e:
+        print(e)
+        return False
+
+
+async def start_measuring(conn_address):
+    global is_measuring, device_client
+
+    try:
+        await device_client.write_gatt_char(CONTROL_UUID, b'\x01')
+        is_measuring = True
+        return True
+    
     except Exception as e:
         print(e)
         return False
@@ -76,7 +102,7 @@ class Window(tk.Tk):
                                      command=lambda: self.loop.create_task(self.toggle_connection()))
         self.conn_button.grid(row=2, column=0, sticky=tk.W, padx=8, pady=8)
         self.control_button = tk.Button(text="Start", width=15, bg='gray',
-                                     command=lambda: self.loop.create_task(self.toggle_connection()))
+                                     command=lambda: self.loop.create_task(self.control_connection()))
         self.control_button["state"] = DISABLED
         self.control_button.grid(row=2, column=1, sticky=tk.W, padx=8, pady=8)
 
@@ -125,12 +151,34 @@ class Window(tk.Tk):
                 device_client = None
                 self.conn_button["text"] = 'Connect'
                 self.conn_button["bg"] = 'green'
+                self.control_button["state"] = DISABLED
+                self.control_button
+
         else:
             if await connect(address):
                 device_connected = True
                 self.conn_button["text"] = 'Disconnect'
                 self.conn_button["bg"] = 'red'
+                self.control_connection["state"] = NORMAL
+                self.control_connection["bg"] = 'green'
+
+                global csv_writer
+                with open('DATA_COLLECTION.csv', 'w') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    csv_writer.writerow(['TIME', 'X', 'Y', 'Z', 'ROT W', 'ROT X', 'ROT Y', 'ROT Z'])
         await asyncio.sleep(0)
+
+
+    async def control_connection(self):
+        if is_measuring:
+            if await stop_measuring(address):
+                self.conn_button["text"] = 'Start'
+                self.conn_button["bg"] = 'green'
+
+        else:
+            if await start_measuring(address):
+                self.conn_button["text"] = 'Stop'
+                self.conn_button["bg"] = 'red'
 
 
 def main():
