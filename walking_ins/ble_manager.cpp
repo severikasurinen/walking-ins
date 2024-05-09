@@ -19,6 +19,7 @@ void MyServerCallbacks::onConnect(BLEServer *pServer) {
 };
 void MyServerCallbacks::onDisconnect(BLEServer *pServer) {
   device_state = 0;
+  BLEDevice::startAdvertising();
   last_action = millis();
   Serial.println("Device disconnected.");
 }
