@@ -18,6 +18,9 @@ SERVICE_UUID = "2e5dc756-78bd-405c-bb72-9641a6848842"  # service channel
 DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"  # data channel
 CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 
+fig_range = (10, 10)  # Plot range from center point in meters (x, y)
+fig_size = (600, 600)  # Plot size in pixels (x, y)
+
 device_connected = False
 is_measuring = False
 device_client = None
@@ -85,8 +88,10 @@ class Window(tk.Tk):
     def __init__(self, loop):
         self.loop = loop
         self.root = tk.Tk()
+        self.root.title("INS Receiver")
 
-        self.canvas = tk.Canvas(self.root, width=1200, height=600, bg="white")
+        self.canvas = tk.Canvas(self.root, width=fig_size[0], height=fig_size[1], bg="white",
+                                highlightthickness=2, highlightbackground="black")
         self.canvas.pack()
         self.canvas.grid(row=1, columnspan=2, padx=(8, 8), pady=(16, 0))
 
@@ -106,36 +111,31 @@ class Window(tk.Tk):
         while True:
             timestamp = "None"
             if is_measuring:
-                try:
-                    in_data = await device_client.read_gatt_char(DATA_UUID)
-                    if len(in_data) > 4:
-                        timestamp = struct.unpack('<L', in_data[0:4])[0]
-                        pos_x = struct.unpack('<f', in_data[4:8])[0]
-                        pos_y = struct.unpack('<f', in_data[8:12])[0]
-                        pos_z = struct.unpack('<f', in_data[12:16])[0]
-                        rot_w = struct.unpack('<f', in_data[16:20])[0]
-                        rot_x = struct.unpack('<f', in_data[20:24])[0]
-                        rot_y = struct.unpack('<f', in_data[24:28])[0]
-                        rot_z = struct.unpack('<f', in_data[28:32])[0]
+                in_data = await device_client.read_gatt_char(DATA_UUID)
+                if len(in_data) > 4:
+                    timestamp = struct.unpack('<L', in_data[0:4])[0]
+                    pos_x = struct.unpack('<f', in_data[4:8])[0]
+                    pos_y = struct.unpack('<f', in_data[8:12])[0]
+                    pos_z = struct.unpack('<f', in_data[12:16])[0]
+                    rot_w = struct.unpack('<f', in_data[16:20])[0]
+                    rot_x = struct.unpack('<f', in_data[20:24])[0]
+                    rot_y = struct.unpack('<f', in_data[24:28])[0]
+                    rot_z = struct.unpack('<f', in_data[28:32])[0]
 
-                        if data_points[-1][0] != timestamp:
-                            data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
+                    if data_points[-1][0] != timestamp:
+                        print(pos_x, pos_y)
+                        data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
 
-                            x_scale = 20  # Scale for x-axis
-                            y_scale = 10  # Scale for y-axis
-                            x_offset = 600
-                            y_offset = 300
+                        scale = ((fig_size[0] / 2) / fig_range[0], (fig_size[1] / 2) / fig_range[1])
 
-                            # Draw data points and lines
-                            for i in range(len(data_points) - 1):
-                                a = data_points[i]
-                                b = data_points[i + 1]
-                                x1_scaled, y1_scaled = a[1] * x_scale + x_offset, y_offset - a[2] * y_scale
-                                x2_scaled, y2_scaled = b[1] * x_scale + x_offset, y_offset - b[2] * y_scale
-                                self.canvas.create_line(x1_scaled, y1_scaled, x2_scaled, y2_scaled, fill="red", width=2)
-                except Exception as e:
-                    print(e)
-                    # Error during measurement
+                        # Draw data points and lines
+                        for i in range(len(data_points) - 1):
+                            a = data_points[i]
+                            b = data_points[i + 1]
+                            start_point = (a[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - a[2] * scale[1])
+                            end_point = (b[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - b[2] * scale[1])
+                            self.canvas.create_line(start_point[0], start_point[1], end_point[0], end_point[1]
+                                                    , fill="red", width=1)
 
             self.label["text"] = timestamp
 
