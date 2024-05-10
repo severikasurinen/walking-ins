@@ -12,7 +12,7 @@
 #define SETUP_ITERATION 200
 #define PARTIAL_ITERATION_MIN 40
 #define PARTIAL_ITERATION_MAX 300
-#define MOVING_TOLERANCE 0.5  // in m/s^2
+#define MOVING_TOLERANCE 0.6  // in m/s^2
 #define CALIB_TOLERANCE 0.2  // in m/s^2
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
@@ -271,15 +271,15 @@ void UpdateIMU() {
   }
 
   if (DEBUG_MODE) {
-    if (print_iters > 250) {
+    if (print_iters > 100) {
       Serial.print("x:");
-      Serial.print(acceleration.x);
+      Serial.print(velocity.x);
       Serial.print(",");
       Serial.print("y:");
-      Serial.print(acceleration.y);
+      Serial.print(velocity.y);
       Serial.print(",");
       Serial.print("z:");
-      Serial.print(acceleration.z);
+      Serial.print(velocity.z);
       Serial.print(",");
 
       Vector euler_rot = GetEuler(orientation);
