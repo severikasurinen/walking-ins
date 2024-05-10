@@ -95,6 +95,12 @@ void loop() {
         SendData(send_data, 32);
         t_sent = millis();
       }
+
+      // Perform partial calibration if requested
+      if (calib_waiting) {
+        PartialCalibration();
+        calib_waiting = false;
+      }
       break;
     default:
       device_state = 0;

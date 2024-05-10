@@ -3,8 +3,8 @@
 #define DEBUG_MODE false
 
 #define IMU_ADDRESS 0x68      // MPU6050 I2C address
-#define ACCELERATION_RANGE 1  // 0: 2g, 1: 4g, 2: 8g, 3: 16g
-#define GYRO_RANGE 1          // 0: 250, 1: 500, 2: 1000, 3: 2000
+#define ACCELERATION_RANGE 2  // 0: 2g, 1: 4g, 2: 8g, 3: 16g
+#define GYRO_RANGE 2          // 0: 250, 1: 500, 2: 1000, 3: 2000
 #define LOW_PASS_FILTER 0     // 0: disabled, 1-6: increased filtering
 
 #define G_VALUE 9.825         // Helsinki
@@ -12,8 +12,8 @@
 #define SETUP_ITERATION 200
 #define PARTIAL_ITERATION_MIN 40
 #define PARTIAL_ITERATION_MAX 300
-#define MOVING_TOLERANCE 0.25  // in m/s^2
-#define CALIB_TOLERANCE 0.05  // in m/s^2
+#define MOVING_TOLERANCE 0.5  // in m/s^2
+#define CALIB_TOLERANCE 0.2  // in m/s^2
 #define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
 
 
@@ -23,6 +23,7 @@ Vector gyro_offset = Vector();                                 // float offset t
 Quaternion rot_offset = Quaternion();
 
 Vector stopped_position = Vector();
+Quaternion stopped_orientation = Quaternion();
 
 Vector acceleration = Vector();
 Vector angular_velocity = Vector();
@@ -31,9 +32,9 @@ Vector velocity = Vector();
 Vector position = Vector();
 Quaternion orientation = Quaternion();
 
+bool calib_waiting = false;
 bool device_moving = false;
 uint32_t t_stopped = 0;     // Since when device has been still?
-float dt = 0;
 unsigned long t_last = 0;
 
 uint8_t print_iters = 0;
@@ -86,15 +87,6 @@ std::array<int16_t, 6> ReadSensor() {
   out_data[3] = Wire.read() << 8 | Wire.read();  // X-axis gyro data
   out_data[4] = Wire.read() << 8 | Wire.read();  // Y-axis gyro data
   out_data[5] = Wire.read() << 8 | Wire.read();  // Z-axis gyro data
-
-  if (micros() < t_last) {
-    dt = (ULONG_MAX - t_last + micros()) / 1000000.0;
-  }
-  else {
-    dt = (micros() - t_last) / 1000000.0;
-  }
-        
-  t_last = micros();
   
   return out_data;
 }
@@ -129,7 +121,7 @@ std::array<float, 6> RawCorrection() {
 
 bool MomentarilyStationary(Vector in_accel, bool calib_accuracy = false) { //returns true if the norm of the linear acceleration is g within tolerance
   float norm = in_accel.GetMagnitude();
-  bool tol = MOVING_TOLERANCE;
+  float tol = MOVING_TOLERANCE;
   if (calib_accuracy) {
     tol = CALIB_TOLERANCE;
   }
@@ -161,6 +153,7 @@ void SetupCalibration() {
 
   // Reset all necessary values
   stopped_position = Vector();
+  stopped_orientation = Quaternion();
   acceleration = Vector();
   angular_velocity = Vector();
   velocity = Vector();
@@ -174,7 +167,8 @@ void PartialCalibration() {
   acceleration = Vector();
   angular_velocity = Vector();
   velocity = Vector();
-  position = stopped_position;
+  //position = stopped_position;
+  //orientation = stopped_orientation;
 
   Vector avg_acc = Vector();
   uint16_t avg_iterations = 0;
@@ -215,28 +209,44 @@ void UpdateIMU() {
     //true branch, check if STOP_TIME has elapsed
     if(t_stopped == 0) {
       stopped_position = position;
+      stopped_orientation = orientation;
       t_stopped = millis();
     }
     else if(device_moving) {
       if(millis() < t_stopped) { //overflow branch
         if(UINT_MAX + millis() - t_stopped >= STOP_TIME) {
           device_moving = false;
-          PartialCalibration();
+          calib_waiting = true; // Request partial calibration
         }
       }
       else if(millis() - t_stopped >= STOP_TIME) {
         device_moving = false;
-        PartialCalibration();
+        calib_waiting = true; // Request partial calibration
       }
     }
   }
   else
   {
+    if (!device_moving) {
+      t_last = micros();
+    }
     device_moving = true;
     t_stopped = 0;
   }
 
   if (device_moving) {
+    // Measure time spent between updates
+    float dt = (micros() - t_last) / 1000000.0;
+    if (micros() < t_last) {
+      dt = (ULONG_MAX - t_last + micros()) / 1000000.0;
+    }
+    t_last = micros();
+    if (dt > 0.005) {
+      Serial.print("Only ");
+      Serial.print(1 / dt);
+      Serial.println(" Hz!");
+    }
+
     // Update orientation based on gyro data
     Vector new_gyro = Vector(new_data[3], new_data[4], new_data[5]);
     Vector avg_gyro = angular_velocity.Average(new_gyro);

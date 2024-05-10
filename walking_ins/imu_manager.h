@@ -14,6 +14,7 @@ extern Vector gyro_offset;
 extern Quaternion rot_offset;
 
 extern Vector stopped_position;
+extern Quaternion stopped_orientation;
 
 extern Vector acceleration;
 extern Vector angular_velocity;
@@ -22,9 +23,9 @@ extern Vector velocity;
 extern Vector position;
 extern Quaternion orientation;
 
+extern bool calib_waiting;
 extern bool device_moving;
 extern uint32_t t_stopped;
-extern float dt;
 extern unsigned long t_last;
 
 extern uint8_t print_iters;

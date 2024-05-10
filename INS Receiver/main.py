@@ -19,13 +19,13 @@ SERVICE_UUID = "2e5dc756-78bd-405c-bb72-9641a6848842"  # service channel
 DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"  # data channel
 CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 
-fig_range = (10, 10)  # Plot range from center point in meters (x, y)
+fig_range = (20, 20)  # Plot range from center point in meters (x, y)
 fig_size = (600, 600)  # Plot size in pixels (x, y)
 
 device_connected = False
 is_measuring = False
 device_client = None
-data_points = [[0, 0, 0, 0, 0, 0, 0, 0]]
+data_points = []
 
 
 async def connect(conn_address):
@@ -124,19 +124,23 @@ class Window(tk.Tk):
                     rot_z = struct.unpack('<f', in_data[28:32])[0]
 
                     if data_points[-1][0] != timestamp:
-                        print(pos_x, pos_y)
+                        print("Timestamp:", timestamp, "| X:", pos_x, ", Y:", pos_y, ", Z:", pos_z,
+                              "| W: ", rot_w, ", X: ", rot_x, ", Y: ", rot_y, ", Z: ", rot_z)
                         data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
 
                         scale = ((fig_size[0] / 2) / fig_range[0], (fig_size[1] / 2) / fig_range[1])
 
                         # Draw data points and lines
-                        for i in range(len(data_points) - 1):
-                            a = data_points[i]
-                            b = data_points[i + 1]
-                            start_point = (a[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - a[2] * scale[1])
-                            end_point = (b[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - b[2] * scale[1])
-                            self.canvas.create_line(start_point[0], start_point[1], end_point[0], end_point[1]
-                                                    , fill="red", width=1)
+                        if len(data_points) > 1:
+                            print(data_points)
+                            for i in range(len(data_points) - 1):
+                                a = data_points[i]
+                                b = data_points[i + 1]
+                                if a != b:
+                                    start_point = (a[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - a[2] * scale[1])
+                                    end_point = (b[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - b[2] * scale[1])
+                                    self.canvas.create_line(start_point[0], start_point[1], end_point[0], end_point[1]
+                                                            , fill="red", width=1)
 
             self.label["text"] = timestamp
 
@@ -186,7 +190,7 @@ class Window(tk.Tk):
         else:
             if await start_measuring():
                 self.canvas.delete("all")
-                data_points = [[0, 0, 0, 0, 0, 0, 0, 0]]
+                data_points = [[0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]]
                 is_measuring = True
                 self.control_button["text"] = 'Stop'
                 self.control_button["bg"] = 'red'
