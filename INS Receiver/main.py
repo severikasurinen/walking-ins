@@ -1,17 +1,15 @@
 import asyncio
 import os
 import csv
+import numpy as np
+from PIL import Image, ImageTk
 from bleak import BleakScanner
 from bleak import BleakClient
 import struct
 from datetime import datetime
 import tkinter as tk
 from tkinter.constants import DISABLED, NORMAL
-from tkinter import ttk
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg, NavigationToolbar2Tk)
-from matplotlib.backend_bases import key_press_handler
-from matplotlib import pyplot as plt, animation
+import matplotlib.pyplot as plt
 
 address = "64:E8:33:00:66:B6"  # ATA_S
 
@@ -19,8 +17,8 @@ SERVICE_UUID = "2e5dc756-78bd-405c-bb72-9641a6848842"  # service channel
 DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"  # data channel
 CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 
-fig_range = (20, 20)  # Plot range from center point in meters (x, y)
-fig_size = (600, 600)  # Plot size in pixels (x, y)
+fig_range = (10, 10)  # Plot range from center point in meters (x, y)
+fig_size = (600, 500)  # Plot size in pixels (x, y)
 
 device_connected = False
 is_measuring = False
@@ -91,8 +89,7 @@ class Window(tk.Tk):
         self.root = tk.Tk()
         self.root.title("INS Receiver")
 
-        self.canvas = tk.Canvas(self.root, width=fig_size[0], height=fig_size[1], bg="white",
-                                highlightthickness=2, highlightbackground="black")
+        self.canvas = tk.Canvas(self.root, width=fig_size[0], height=fig_size[1])
         self.canvas.pack()
         self.canvas.grid(row=1, columnspan=2, padx=(8, 8), pady=(16, 0))
 
@@ -125,22 +122,33 @@ class Window(tk.Tk):
 
                     if data_points[-1][0] != timestamp:
                         print("Timestamp:", timestamp, "| X:", pos_x, ", Y:", pos_y, ", Z:", pos_z,
-                              "| W: ", rot_w, ", X: ", rot_x, ", Y: ", rot_y, ", Z: ", rot_z)
+                              "| W:", rot_w, ", X:", rot_x, ", Y:", rot_y, ", Z:", rot_z)
                         data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
 
                         scale = ((fig_size[0] / 2) / fig_range[0], (fig_size[1] / 2) / fig_range[1])
 
                         # Draw data points and lines
                         if len(data_points) > 1:
-                            print(data_points)
-                            for i in range(len(data_points) - 1):
-                                a = data_points[i]
-                                b = data_points[i + 1]
-                                if a != b:
-                                    start_point = (a[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - a[2] * scale[1])
-                                    end_point = (b[1] * scale[0] + fig_size[0] / 2, fig_size[1] / 2 - b[2] * scale[1])
-                                    self.canvas.create_line(start_point[0], start_point[1], end_point[0], end_point[1]
-                                                            , fill="red", width=1)
+                            x = np.array(data_points)[:, 1]
+                            y = np.array(data_points)[:, 2]
+
+                            fig = plt.figure()
+                            fig.patch.set_alpha(0.0)
+                            ax = fig.add_subplot(111)
+                            plt.xlabel("x (m)")
+                            plt.ylabel("y (m)")
+                            plt.axis((-fig_range[0], fig_range[0], -fig_range[1], fig_range[1]))
+                            plt.grid()
+
+                            ax.plot(x, y, color='red')
+
+                            fig.savefig('temp.png', facecolor=fig.get_facecolor(), edgecolor='none')
+                            plt.close()
+                            img = ImageTk.PhotoImage(Image.open("temp.png"))
+                            os.remove("temp.png")
+                            self.canvas.create_image(fig_size[0] / 2, fig_size[1] / 2, image=img)
+
+                    await asyncio.sleep(0.15)
 
             self.label["text"] = timestamp
 
@@ -165,8 +173,6 @@ class Window(tk.Tk):
                 self.conn_button["bg"] = 'red'
                 self.control_button["state"] = NORMAL
                 self.control_button["bg"] = 'green'
-
-        await asyncio.sleep(0)
 
     async def toggle_measurement(self):
         global is_measuring, data_points
