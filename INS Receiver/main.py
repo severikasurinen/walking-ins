@@ -18,7 +18,7 @@ DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"  # data channel
 CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 
 fig_range = (10, 10)  # Plot range from center point in meters (x, y)
-fig_size = (600, 500)  # Plot size in pixels (x, y)
+fig_size = (600, 480)  # Plot size in pixels (x, y)
 
 device_connected = False
 is_measuring = False
@@ -89,25 +89,24 @@ class Window(tk.Tk):
         self.root = tk.Tk()
         self.root.title("INS Receiver")
 
-        self.canvas = tk.Canvas(self.root, width=fig_size[0], height=fig_size[1])
-        self.canvas.pack()
-        self.canvas.grid(row=1, columnspan=2, padx=(8, 8), pady=(16, 0))
-
         self.label = tk.Label(text="")
-        self.label.grid(row=0, column=0, padx=(8, 8), pady=(16, 0))
+        self.label.grid(row=0, column=2, padx=8, pady=16)
 
         self.conn_button = tk.Button(text="Connect", width=15, bg='green',
                                      command=lambda: self.loop.create_task(self.toggle_connection()))
-        self.conn_button.grid(row=2, column=0, sticky=tk.W, padx=8, pady=8)
+        self.conn_button.grid(row=0, column=0, sticky=tk.E, padx=8, pady=16)
         self.control_button = tk.Button(text="Start", width=15, bg='gray',
                                         command=lambda: self.loop.create_task(self.toggle_measurement()))
         self.control_button["state"] = DISABLED
-        self.control_button.grid(row=2, column=1, sticky=tk.W, padx=8, pady=8)
+        self.control_button.grid(row=0, column=1, sticky=tk.W, padx=8, pady=16)
+
+        self.canvas = tk.Canvas(self.root, width=fig_size[0], height=fig_size[1])
+        self.canvas.grid(row=1, columnspan=3)
 
     async def show(self):
         global is_measuring
         while True:
-            timestamp = "None"
+            timestamp = None
             if is_measuring:
                 in_data = await device_client.read_gatt_char(DATA_UUID)
                 if len(in_data) == 32:
@@ -124,8 +123,6 @@ class Window(tk.Tk):
                         print("Timestamp:", timestamp, "| X:", pos_x, ", Y:", pos_y, ", Z:", pos_z,
                               "| W:", rot_w, ", X:", rot_x, ", Y:", rot_y, ", Z:", rot_z)
                         data_points.append([timestamp, pos_x, pos_y, pos_z, rot_w, rot_x, rot_y, rot_z])
-
-                        scale = ((fig_size[0] / 2) / fig_range[0], (fig_size[1] / 2) / fig_range[1])
 
                         # Draw data points and lines
                         if len(data_points) > 1:
@@ -146,11 +143,14 @@ class Window(tk.Tk):
                             plt.close()
                             img = ImageTk.PhotoImage(Image.open("temp.png"))
                             os.remove("temp.png")
-                            self.canvas.create_image(fig_size[0] / 2, fig_size[1] / 2, image=img)
+                            self.canvas.create_image(fig_size[0] / 2, 0, anchor=tk.N, image=img)
 
                     await asyncio.sleep(0.15)
 
-            self.label["text"] = timestamp
+            if timestamp is None:
+                self.label["text"] = timestamp
+            else:
+                self.label["text"] = "Timestamp: " + str(timestamp / 1000.0) + " s"
 
             self.root.update()
             await asyncio.sleep(0.1)
