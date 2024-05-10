@@ -167,8 +167,8 @@ void PartialCalibration() {
   acceleration = Vector();
   angular_velocity = Vector();
   velocity = Vector();
-  //position = stopped_position;
-  //orientation = stopped_orientation;
+  position = stopped_position;
+  orientation = stopped_orientation;
 
   Vector avg_acc = Vector();
   uint16_t avg_iterations = 0;

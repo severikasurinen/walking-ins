@@ -113,7 +113,7 @@ class Window(tk.Tk):
             timestamp = "None"
             if is_measuring:
                 in_data = await device_client.read_gatt_char(DATA_UUID)
-                if len(in_data) > 4:
+                if len(in_data) == 32:
                     timestamp = struct.unpack('<L', in_data[0:4])[0]
                     pos_x = struct.unpack('<f', in_data[4:8])[0]
                     pos_y = struct.unpack('<f', in_data[8:12])[0]

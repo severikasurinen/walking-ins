@@ -40,6 +40,9 @@ void loop() {
       delay(100);
       break;
     case 2: // starting measurement
+      uint8_t send_data[1];
+      send_data[0] = 0;
+      SendData(send_data, 1);
       SetupCalibration();
       device_state = 3;
       break;
