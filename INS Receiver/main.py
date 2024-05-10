@@ -1,4 +1,5 @@
 import asyncio
+import os
 import csv
 from bleak import BleakScanner
 from bleak import BleakClient
@@ -174,7 +175,10 @@ class Window(tk.Tk):
                 self.conn_button["bg"] = 'red'
                 self.conn_button["state"] = NORMAL
 
-                file_name = "data_" + datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv"
+                if not os.path.isdir("datastream/"):
+                    os.mkdir("datastream/")
+
+                file_name = "datastream/data_" + datetime.now().strftime("%Y-%m-%d_%H-%M") + ".csv"
                 with open(file_name, 'w', newline='') as csvfile:
                     csv_writer = csv.writer(csvfile)
                     csv_writer.writerow(['timestamp', 'pos_x', 'pos_y', 'pos_z', 'rot_w', 'rot_x', 'rot_y', 'rot_z'])
