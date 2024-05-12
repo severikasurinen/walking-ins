@@ -9,15 +9,14 @@
 
 #define G_VALUE 9.825         // Helsinki
 
-#define SETUP_ITERATION 200
-#define PARTIAL_ITERATION_MIN 40
-#define PARTIAL_ITERATION_MAX 300
-#define MOVING_TOLERANCE 0.6  // in m/s^2
-#define CALIB_TOLERANCE 0.2  // in m/s^2
-#define STOP_TIME 200         // Time in ms required to stay still for setting device_moving to false
+#define SETUP_ITERATION 300
+#define PARTIAL_CALIB_MIN 0.1   // in s
+#define MOVING_TOLERANCE 0.35  // in m/s^2
+#define CALIB_TOLERANCE 0.1  // in m/s^2
+#define STOP_TIME 100         // Time in ms required to stay still for setting device_moving to false
 
 
-float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)); // 16bit to deg/s multiplier, from datasheet
+float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.05; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
 Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset = Quaternion();
@@ -32,10 +31,12 @@ Vector velocity = Vector();
 Vector position = Vector();
 Quaternion orientation = Quaternion();
 
-bool calib_waiting = false;
 bool device_moving = false;
 uint32_t t_stopped = 0;     // Since when device has been still?
 unsigned long t_last = 0;
+uint16_t avg_iterations = 0;
+float avg_time = 0;
+Vector avg_acceleration = Vector();
 
 uint8_t print_iters = 0;
 
@@ -119,16 +120,16 @@ std::array<float, 6> RawCorrection() {
   return out_data;
 }
 
-bool MomentarilyStationary(Vector in_accel, bool calib_accuracy = false) { //returns true if the norm of the linear acceleration is g within tolerance
-  float norm = in_accel.GetMagnitude();
-  float tol = MOVING_TOLERANCE;
-  if (calib_accuracy) {
-    tol = CALIB_TOLERANCE;
+uint8_t MomentarilyStationary(Vector in_accel) { //returns true if the norm of the linear acceleration is g within tolerance
+  float norm_accel = abs(G_VALUE - in_accel.GetMagnitude());
+  if(norm_accel < CALIB_TOLERANCE) {
+    return 2;
   }
-  if(abs(G_VALUE - norm) < tol) {
-    return true;
-  } else {
-    return false;
+  else if(norm_accel < MOVING_TOLERANCE) {
+    return 1;
+  }
+  else {
+    return 0;
   }
 }
 
@@ -163,39 +164,36 @@ void SetupCalibration() {
   t_stopped = 1;
 }
 
-void PartialCalibration() {
-  acceleration = Vector();
-  angular_velocity = Vector();
-  velocity = Vector();
-  position = stopped_position;
-  orientation = stopped_orientation;
+void PartialCalibration(Vector avg_accel) {
+  // Reset orientation to align with ground
+  Vector euler_yaw = GetEuler(orientation);
+  euler_yaw = Vector(0, 0, euler_yaw.z);
+  orientation = euler_yaw.ToQuaternion();
 
-  Vector avg_acc = Vector();
-  uint16_t avg_iterations = 0;
-  while (avg_iterations < PARTIAL_ITERATION_MAX) {
-    std::array<float, 6> new_data = RawCorrection();
-    Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
-    if(!MomentarilyStationary(new_accel)) {
-      break;
+  // Calculate new rot_offset
+  Vector normalized_g = Vector(0, 0, 1.0);
+  rot_offset = GetRotationBetween(avg_accel.GetRotated(orientation), normalized_g); // Fix rotation to align with gravity, while retaining yaw information.
+}
+
+void SetMoving(bool new_moving) {
+  if(new_moving) {
+    device_moving = true;
+
+    // Perform orientation calibration if enough averaging iterations
+    if(avg_time >= PARTIAL_CALIB_MIN) {
+      PartialCalibration(avg_acceleration / avg_iterations);
     }
-    else if (MomentarilyStationary(new_accel, true)) {
-      avg_acc = avg_acc + new_accel;
-      avg_iterations++;
-      delay(5);
-    }
+    avg_time = 0;
+    avg_iterations = 0;
+    avg_acceleration = Vector();
   }
-  // Perform orientation calibration if enough averaging iterations
-  if (avg_iterations >= PARTIAL_ITERATION_MIN) {
-    avg_acc = avg_acc / avg_iterations;
-
-    // Reset orientation to align with ground
-    Vector euler_yaw = GetEuler(orientation);
-    euler_yaw = Vector(0, 0, euler_yaw.z);
-    orientation = euler_yaw.ToQuaternion();
-
-    // Calculate new rot_offset
-    Vector normalized_g = Vector(0, 0, 1.0);
-    rot_offset = GetRotationBetween(avg_acc.GetRotated(orientation), normalized_g); // Fix rotation to align with gravity, while retaining yaw information.
+  else {
+    device_moving = false;
+        
+    acceleration = Vector();
+    velocity = Vector();
+    position = stopped_position;
+    //orientation = stopped_orientation;
   }
 }
 
@@ -204,8 +202,9 @@ void UpdateIMU() {
 
   std::array<float, 6> new_data = RawCorrection();
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
-
-  if(MomentarilyStationary(new_accel)) {
+  uint8_t cur_stationary = MomentarilyStationary(new_accel);
+  
+  if(cur_stationary > 0) {
     //true branch, check if STOP_TIME has elapsed
     if(t_stopped == 0) {
       stopped_position = position;
@@ -215,42 +214,45 @@ void UpdateIMU() {
     else if(device_moving) {
       if(millis() < t_stopped) { //overflow branch
         if(UINT_MAX + millis() - t_stopped >= STOP_TIME) {
-          device_moving = false;
-          calib_waiting = true; // Request partial calibration
+          SetMoving(false);
         }
       }
       else if(millis() - t_stopped >= STOP_TIME) {
-        device_moving = false;
-        calib_waiting = true; // Request partial calibration
+        SetMoving(false);
       }
     }
   }
   else
   {
-    if (!device_moving) {
-      t_last = micros();
-    }
-    device_moving = true;
     t_stopped = 0;
+    if(!device_moving) {
+      SetMoving(true);
+    }
+  }
+  // Measure time spent between updates
+  float dt = (micros() - t_last) / 1000000.0;
+  if (micros() < t_last) {
+    dt = (ULONG_MAX - t_last + micros()) / 1000000.0;
+  }
+  t_last = micros();
+  if (dt > 0.005) {
+    Serial.print("Only ");
+    Serial.print(1 / dt);
+    Serial.println(" Hz!");
   }
 
-  if (device_moving) {
-    // Measure time spent between updates
-    float dt = (micros() - t_last) / 1000000.0;
-    if (micros() < t_last) {
-      dt = (ULONG_MAX - t_last + micros()) / 1000000.0;
-    }
-    t_last = micros();
-    if (dt > 0.005) {
-      Serial.print("Only ");
-      Serial.print(1 / dt);
-      Serial.println(" Hz!");
-    }
-
+  if(cur_stationary < 2) {
     // Update orientation based on gyro data
     Vector new_gyro = Vector(new_data[3], new_data[4], new_data[5]);
     Vector avg_gyro = angular_velocity.Average(new_gyro);
     orientation = (avg_gyro * dt).ToQuaternion().GetProduct(orientation);
+    angular_velocity = new_gyro;
+  }
+  else {
+    angular_velocity = Vector();
+  }
+
+  if (device_moving) {
 
     // Rotate acceleration to global orientation
     new_accel = new_accel.GetRotated(orientation.GetProduct(rot_offset));
@@ -267,39 +269,11 @@ void UpdateIMU() {
     // Update global variables to new values
     velocity = new_vel;
     acceleration = new_accel;
-    angular_velocity = new_gyro;
   }
-
-  if (DEBUG_MODE) {
-    if (print_iters > 100) {
-      Serial.print("x:");
-      Serial.print(velocity.x);
-      Serial.print(",");
-      Serial.print("y:");
-      Serial.print(velocity.y);
-      Serial.print(",");
-      Serial.print("z:");
-      Serial.print(velocity.z);
-      Serial.print(",");
-
-      Vector euler_rot = GetEuler(orientation);
-      Serial.print("roll:");
-      Serial.print(euler_rot.x);
-      Serial.print(",");
-      Serial.print("pitch:");
-      Serial.print(euler_rot.y);
-      Serial.print(",");
-      Serial.print("yaw:");
-      Serial.print(euler_rot.z);
-      Serial.print(",");
-      Serial.print("mov:");
-      Serial.println(device_moving);
-
-      print_iters = 0;
-    }
-    else {
-      print_iters++;
-    }
+  else if (cur_stationary == 2) {
+      avg_acceleration = avg_acceleration + new_accel;
+      avg_time += dt;
+      avg_iterations++;
   }
 }
 

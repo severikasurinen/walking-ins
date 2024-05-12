@@ -23,19 +23,22 @@ extern Vector velocity;
 extern Vector position;
 extern Quaternion orientation;
 
-extern bool calib_waiting;
 extern bool device_moving;
 extern uint32_t t_stopped;
 extern unsigned long t_last;
+extern uint16_t avg_iterations;
+extern float avg_time;
+extern Vector avg_acceleration;
 
 extern uint8_t print_iters;
 
 extern void SetupIMU();
 std::array<int16_t, 6> ReadSensor();
 std::array<float, 6> RawCorrection();
-bool MomentarilyStationary(float tolerance, float g);
+uint8_t MomentarilyStationary(Vector in_accel);
 extern void SetupCalibration();
-void PartialCalibration();
+void PartialCalibration(Vector avg_accel);
+void SetMoving(bool new_moving);
 void UpdateIMU();
 extern void SleepIMU();
 
