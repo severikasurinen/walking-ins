@@ -152,7 +152,7 @@ class Window(tk.Tk):
                                 os.remove("temp.png")
                                 self.canvas.create_image(fig_size[0] / 2, 0, anchor=tk.N, image=img)
 
-                        await asyncio.sleep(0.15)
+                                await asyncio.sleep(0.15)
                 except Exception as e:
                     print(e)
                     await self.toggle_connection()

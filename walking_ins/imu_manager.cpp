@@ -275,6 +275,38 @@ void UpdateIMU() {
       avg_time += dt;
       avg_iterations++;
   }
+
+  if (DEBUG_MODE) {
+    if (print_iters > 100) {
+      Serial.print("x:");
+      Serial.print(velocity.x);
+      Serial.print(",");
+      Serial.print("y:");
+      Serial.print(velocity.y);
+      Serial.print(",");
+      Serial.print("z:");
+      Serial.print(velocity.z);
+      Serial.print(",");
+
+      Vector euler_rot = GetEuler(orientation);
+      Serial.print("roll:");
+      Serial.print(euler_rot.x);
+      Serial.print(",");
+      Serial.print("pitch:");
+      Serial.print(euler_rot.y);
+      Serial.print(",");
+      Serial.print("yaw:");
+      Serial.print(euler_rot.z);
+      Serial.print(",");
+      Serial.print("mov:");
+      Serial.println(device_moving);
+
+      print_iters = 0;
+    }
+    else {
+      print_iters++;
+    }
+  }
 }
 
 /// Puts IMU into sleep mode.
