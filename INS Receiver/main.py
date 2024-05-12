@@ -10,6 +10,7 @@ from datetime import datetime
 import tkinter as tk
 from tkinter.constants import DISABLED, NORMAL
 import matplotlib.pyplot as plt
+from scipy.spatial.transform import Rotation
 
 address = "64:E8:33:00:66:B6"  # ATA_S
 
@@ -136,9 +137,14 @@ class Window(tk.Tk):
                                 plt.xlabel("x (m)")
                                 plt.ylabel("y (m)")
                                 plt.axis((-fig_range[0], fig_range[0], -fig_range[1], fig_range[1]))
-                                plt.grid()
+                                plt.grid(zorder=1)
 
-                                ax.plot(x, y, color='red')
+                                ax.plot(x, y, color='black', zorder=2)
+
+                                arrow_length = (fig_range[0] + fig_range[1]) / 2 / 25
+                                yaw = -Rotation.from_quat([rot_w, rot_x, rot_y, rot_z]).as_euler('xyz')[0] + np.pi
+                                ax.arrow(x[-1], y[-1], arrow_length * np.cos(yaw), arrow_length * np.sin(yaw),
+                                         color='red', head_width=arrow_length / 2, zorder=3)
 
                                 fig.savefig('temp.png', facecolor=fig.get_facecolor(), edgecolor='none')
                                 plt.close()
