@@ -10,19 +10,23 @@
 #define G_VALUE 9.825         // Helsinki
 
 #define SETUP_ITERATION 300
-#define PARTIAL_CALIB_MIN 0.1   // in s
-#define MOVING_TOLERANCE 0.35  // in m/s^2
-#define CALIB_TOLERANCE 0.1  // in m/s^2
-#define STOP_TIME 100         // Time in ms required to stay still for setting device_moving to false
+
+#define STOP_ACCELERATION_MAX 1.2 // Maximum acceleration norm in m/s^2 for setting device_moving to false
+#define STOP_GYRO_MAX 200 // Maximum gyro norm in deg/s for setting device_moving to false
+#define STOP_TIME_MIN 150 // Time in ms required to stay still for setting device_moving to false
+#define MOVE_TIME_MIN 15 // Time in ms required to move for setting device_moving to true
+
+#define CALIB_ACCELERATION_MAX 0.3 // Maximum acceleration norm in m/s^2 for starting partial calibration
+#define CALIB_GYRO_MAX 25 // Maximum gyro norm in deg/s for starting partial calibration
+#define CALIB_GYRO_RANGE_MAX 1.0 // Maximum gyro norm range in deg/s for partial calibration
+#define CALIB_INTERVAL_MIN 500 // Minimum interval between partial calibrations, unless new conditions are better than last calibration's
+#define CALIB_TIME_MIN 40   // Time in ms required to perform partial calibration
 
 
 float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.05; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
 Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset = Quaternion();
-
-Vector stopped_position = Vector();
-Quaternion stopped_orientation = Quaternion();
 
 Vector acceleration = Vector();
 Vector angular_velocity = Vector();
@@ -31,11 +35,19 @@ Vector velocity = Vector();
 Vector position = Vector();
 Quaternion orientation = Quaternion();
 
-bool device_moving = false;
-uint32_t t_stopped = 0;     // Since when device has been still?
 unsigned long t_last = 0;
+
+bool device_moving = false;
+uint32_t t_stopped = 0;     // Since when has device been still?
+uint32_t t_moved = 0;     // Since when has device been moving?
+Vector stopped_position = Vector();
+
+uint32_t t_calib = 0;   // Since when has device been calibrating?
+float calib_gyro_max = 0;  // Maximum gyro in deg/s of current calibration
+float calib_gyro_min = 0;  // Minimum gyro in deg/s of current calibration
+uint32_t t_last_calib = 0;  // When did last calibration finish?
+float last_calib_min = 0;  // calib_gyro_min of last calibration
 uint16_t avg_iterations = 0;
-float avg_time = 0;
 Vector avg_acceleration = Vector();
 
 uint8_t print_iters = 0;
@@ -120,12 +132,13 @@ std::array<float, 6> RawCorrection() {
   return out_data;
 }
 
-uint8_t MomentarilyStationary(Vector in_accel) { //returns true if the norm of the linear acceleration is g within tolerance
-  float norm_accel = abs(G_VALUE - in_accel.GetMagnitude());
-  if(norm_accel < CALIB_TOLERANCE) {
+uint8_t MomentarilyStationary(float accel_norm, float gyro_norm) {
+  //returns true if the norm of the linear acceleration is g within tolerance
+
+  if(accel_norm <= CALIB_ACCELERATION_MAX && gyro_norm <= CALIB_GYRO_MAX && calib_gyro_max - calib_gyro_min <= CALIB_GYRO_RANGE_MAX) {
     return 2;
   }
-  else if(norm_accel < MOVING_TOLERANCE) {
+  else if(accel_norm <= STOP_ACCELERATION_MAX && gyro_norm <= STOP_GYRO_MAX) {
     return 1;
   }
   else {
@@ -153,15 +166,24 @@ void SetupCalibration() {
   Serial.println("Setup calibration done.");
 
   // Reset all necessary values
-  stopped_position = Vector();
-  stopped_orientation = Quaternion();
   acceleration = Vector();
   angular_velocity = Vector();
   velocity = Vector();
   position = Vector();
   orientation = Quaternion();
+  t_last = 0;
   device_moving = false;
-  t_stopped = 1;
+  t_stopped = 0;
+  t_moved = 0;
+  stopped_position = Vector();
+  t_calib = 0;
+  calib_gyro_max = 0;
+  calib_gyro_min = 0;
+  t_last_calib = 0;
+  last_calib_min = 0;
+  avg_iterations = 0;
+  avg_acceleration = Vector();
+  print_iters = 0;
 }
 
 void PartialCalibration(Vector avg_accel) {
@@ -178,14 +200,6 @@ void PartialCalibration(Vector avg_accel) {
 void SetMoving(bool new_moving) {
   if(new_moving) {
     device_moving = true;
-
-    // Perform orientation calibration if enough averaging iterations
-    if(avg_time >= PARTIAL_CALIB_MIN) {
-      PartialCalibration(avg_acceleration / avg_iterations);
-    }
-    avg_time = 0;
-    avg_iterations = 0;
-    avg_acceleration = Vector();
   }
   else {
     device_moving = false;
@@ -193,7 +207,6 @@ void SetMoving(bool new_moving) {
     acceleration = Vector();
     velocity = Vector();
     position = stopped_position;
-    //orientation = stopped_orientation;
   }
 }
 
@@ -202,33 +215,66 @@ void UpdateIMU() {
 
   std::array<float, 6> new_data = RawCorrection();
   Vector new_accel = Vector(new_data[0], new_data[1], new_data[2]);
-  uint8_t cur_stationary = MomentarilyStationary(new_accel);
+  Vector new_gyro = Vector(new_data[3], new_data[4], new_data[5]);
+
+  float accel_norm = abs(G_VALUE - new_accel.GetMagnitude());
+  float gyro_norm = new_gyro.GetMagnitude();
+  uint8_t cur_stationary = MomentarilyStationary(accel_norm, gyro_norm);
   
   if(cur_stationary > 0) {
-    //true branch, check if STOP_TIME has elapsed
-    if(t_stopped == 0) {
-      stopped_position = position;
-      stopped_orientation = orientation;
-      t_stopped = millis();
-    }
-    else if(device_moving) {
-      if(millis() < t_stopped) { //overflow branch
-        if(UINT_MAX + millis() - t_stopped >= STOP_TIME) {
+    if(device_moving) {
+      if(t_stopped == 0) {
+        stopped_position = position;
+        t_stopped = millis();
+      }
+      else if(millis() - t_stopped >= STOP_TIME_MIN) {
           SetMoving(false);
-        }
-      }
-      else if(millis() - t_stopped >= STOP_TIME) {
-        SetMoving(false);
       }
     }
   }
-  else
-  {
-    t_stopped = 0;
+  else {
     if(!device_moving) {
-      SetMoving(true);
+      if(t_moved == 0) {
+        t_moved = millis();
+      }
+      else if(millis() - t_moved >= MOVE_TIME_MIN) {
+        t_moved = 0;
+        SetMoving(true);
+      }
     }
   }
+
+  if(cur_stationary == 2 && calib_gyro_max - calib_gyro_min <= CALIB_GYRO_RANGE_MAX) {
+    if(t_calib == 0) {
+      if(millis() - t_last_calib >= CALIB_INTERVAL_MIN || gyro_norm < last_calib_min) {
+        t_calib = millis();
+
+        calib_gyro_max = gyro_norm;
+        calib_gyro_min = gyro_norm;
+      }
+    }
+    else {
+      avg_iterations++;
+      avg_acceleration = avg_acceleration + new_accel;
+
+      calib_gyro_max = max(gyro_norm, calib_gyro_max);
+      calib_gyro_min = min(gyro_norm, calib_gyro_min);
+    }
+  }
+  else {
+    // Perform orientation calibration if enough time spent calibrating
+    if(millis() - t_calib >= CALIB_TIME_MIN) {
+      PartialCalibration(avg_acceleration / avg_iterations);
+      last_calib_min = calib_gyro_min;
+      t_last_calib = millis();
+    }
+    t_calib = 0;
+    calib_gyro_max = 0;
+    calib_gyro_min = 0;
+    avg_iterations = 0;
+    avg_acceleration = Vector();
+  }
+
   // Measure time spent between updates
   float dt = (micros() - t_last) / 1000000.0;
   if (micros() < t_last) {
@@ -243,7 +289,6 @@ void UpdateIMU() {
 
   if(cur_stationary < 2) {
     // Update orientation based on gyro data
-    Vector new_gyro = Vector(new_data[3], new_data[4], new_data[5]);
     Vector avg_gyro = angular_velocity.Average(new_gyro);
     orientation = (avg_gyro * dt).ToQuaternion().GetProduct(orientation);
     angular_velocity = new_gyro;
@@ -269,11 +314,6 @@ void UpdateIMU() {
     // Update global variables to new values
     velocity = new_vel;
     acceleration = new_accel;
-  }
-  else if (cur_stationary == 2) {
-      avg_acceleration = avg_acceleration + new_accel;
-      avg_time += dt;
-      avg_iterations++;
   }
 
   if (DEBUG_MODE) {
