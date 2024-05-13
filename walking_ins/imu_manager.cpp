@@ -23,7 +23,7 @@
 #define CALIB_TIME_MIN 40   // Time in ms required to perform partial calibration
 
 
-float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.05; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
+float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.0; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
 Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset = Quaternion();
@@ -263,7 +263,7 @@ void UpdateIMU() {
   }
   else {
     // Perform orientation calibration if enough time spent calibrating
-    if(millis() - t_calib >= CALIB_TIME_MIN) {
+    if(t_calib > 0 && millis() - t_calib >= CALIB_TIME_MIN) {
       PartialCalibration(avg_acceleration / avg_iterations);
       last_calib_min = calib_gyro_min;
       t_last_calib = millis();
@@ -298,7 +298,6 @@ void UpdateIMU() {
   }
 
   if (device_moving) {
-
     // Rotate acceleration to global orientation
     new_accel = new_accel.GetRotated(orientation.GetProduct(rot_offset));
     new_accel = Vector(new_accel.x, new_accel.y, new_accel.z - G_VALUE);
@@ -319,13 +318,13 @@ void UpdateIMU() {
   if (DEBUG_MODE) {
     if (print_iters > 100) {
       Serial.print("x:");
-      Serial.print(velocity.x);
+      Serial.print(acceleration.x);
       Serial.print(",");
       Serial.print("y:");
-      Serial.print(velocity.y);
+      Serial.print(acceleration.y);
       Serial.print(",");
       Serial.print("z:");
-      Serial.print(velocity.z);
+      Serial.print(acceleration.z);
       Serial.print(",");
 
       Vector euler_rot = GetEuler(orientation);
