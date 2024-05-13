@@ -18,7 +18,7 @@ SERVICE_UUID = "2e5dc756-78bd-405c-bb72-9641a6848842"  # service channel
 DATA_UUID = "a20eebe5-dfbf-4428-bb7b-84e40d102681"  # data channel
 CONTROL_UUID = "0cf0cef9-ec1a-495a-a007-4de6037a303b"  # config channel
 
-fig_range = (10, 10)  # Plot range from center point in meters (x, y)
+fig_range = (100, 100)  # Plot range from center point in meters (x, y)
 fig_size = (600, 480)  # Plot size in pixels (x, y)
 
 device_connected = False
