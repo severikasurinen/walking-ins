@@ -23,7 +23,7 @@
 #define CALIB_TIME_MIN 40   // Time in ms required to perform partial calibration
 
 
-float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.0; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
+float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.025; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
 Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset = Quaternion();
