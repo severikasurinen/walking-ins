@@ -11,19 +11,19 @@
 
 #define SETUP_ITERATION 300
 
-#define STOP_ACCELERATION_MAX 1.0 // Maximum acceleration norm in m/s^2 for setting device_moving to false
+#define STOP_ACCELERATION_MAX 5.0 // Maximum acceleration norm in m/s^2 for setting device_moving to false
 #define STOP_GYRO_MAX 100 // Maximum gyro norm in deg/s for setting device_moving to false
-#define STOP_TIME_MIN 150 // Time in ms required to stay still for setting device_moving to false
+#define STOP_TIME_MIN 50 // Time in ms required to stay still for setting device_moving to false
 #define MOVE_TIME_MIN 25 // Time in ms required to move for setting device_moving to true
 
-#define CALIB_ACCELERATION_MAX 0.3 // Maximum acceleration norm in m/s^2 for starting partial calibration
-#define CALIB_GYRO_MAX 25 // Maximum gyro norm in deg/s for starting partial calibration
+#define CALIB_ACCELERATION_MAX 0.8 // Maximum acceleration norm in m/s^2 for starting partial calibration
+#define CALIB_GYRO_MAX 35 // Maximum gyro norm in deg/s for starting partial calibration
 #define CALIB_GYRO_RANGE_MAX 1.0 // Maximum gyro norm range in deg/s for partial calibration
 #define CALIB_INTERVAL_MIN 500 // Minimum interval between partial calibrations, unless new conditions are better than last calibration's
 #define CALIB_TIME_MIN 40   // Time in ms required to perform partial calibration
 
 
-float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.025; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
+float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 0.86; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
 float accel_multiplier = 1.0;                         // 16bit to m/s^2 multiplier, calculated in setup calibration
 Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
 Quaternion rot_offset = Quaternion();

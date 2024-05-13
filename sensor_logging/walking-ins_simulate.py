@@ -3,19 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-STOP_ACCELERATION_MAX = 1.0
+STOP_ACCELERATION_MAX = 5.0
 STOP_GYRO_MAX = 100
-STOP_TIME_MIN = 150
+STOP_TIME_MIN = 50
 MOVE_TIME_MIN = 25
 
-CALIB_ACCELERATION_MAX = 0.3
-CALIB_GYRO_MAX = 25
+CALIB_ACCELERATION_MAX = 0.8
+CALIB_GYRO_MAX = 35
 CALIB_GYRO_RANGE = 1.0
 CALIB_INTERVAL_MIN = 500
 CALIB_TIME_MIN = 40
 
 
-plot_size = (20, 6)
+plot_size = (40, 6)
 data_headers = []
 data_dict = {}
 start_time = -1
@@ -126,4 +126,4 @@ ax2.tick_params(axis='y', labelcolor=color)
 
 fig.tight_layout()  # otherwise the right y-label is slightly clipped
 plt.savefig('datastream.png')
-plt.show()
+#plt.show()
