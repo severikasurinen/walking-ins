@@ -11,10 +11,10 @@
 
 #define SETUP_ITERATION 300
 
-#define STOP_ACCELERATION_MAX 1.2 // Maximum acceleration norm in m/s^2 for setting device_moving to false
-#define STOP_GYRO_MAX 200 // Maximum gyro norm in deg/s for setting device_moving to false
+#define STOP_ACCELERATION_MAX 1.0 // Maximum acceleration norm in m/s^2 for setting device_moving to false
+#define STOP_GYRO_MAX 100 // Maximum gyro norm in deg/s for setting device_moving to false
 #define STOP_TIME_MIN 150 // Time in ms required to stay still for setting device_moving to false
-#define MOVE_TIME_MIN 15 // Time in ms required to move for setting device_moving to true
+#define MOVE_TIME_MIN 25 // Time in ms required to move for setting device_moving to true
 
 #define CALIB_ACCELERATION_MAX 0.3 // Maximum acceleration norm in m/s^2 for starting partial calibration
 #define CALIB_GYRO_MAX 25 // Maximum gyro norm in deg/s for starting partial calibration
@@ -222,6 +222,8 @@ void UpdateIMU() {
   uint8_t cur_stationary = MomentarilyStationary(accel_norm, gyro_norm);
   
   if(cur_stationary > 0) {
+    t_moved = 0;
+
     if(device_moving) {
       if(t_stopped == 0) {
         stopped_position = position;
@@ -233,12 +235,13 @@ void UpdateIMU() {
     }
   }
   else {
+    t_stopped = 0;
+
     if(!device_moving) {
       if(t_moved == 0) {
         t_moved = millis();
       }
       else if(millis() - t_moved >= MOVE_TIME_MIN) {
-        t_moved = 0;
         SetMoving(true);
       }
     }
