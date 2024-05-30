@@ -2,12 +2,11 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
-
+# Parameters to simulate in graph
 STOP_ACCELERATION_MAX = 5.0
 STOP_GYRO_MAX = 100
 STOP_TIME_MIN = 50
 MOVE_TIME_MIN = 25
-
 CALIB_ACCELERATION_MAX = 0.3
 CALIB_GYRO_MAX = 25
 CALIB_GYRO_RANGE = 1.0
@@ -15,10 +14,12 @@ CALIB_INTERVAL_MIN = 500
 CALIB_TIME_MIN = 40
 
 
-plot_size = (40, 6)
+plot_size = (24, 6) # Set plot size
 data_headers = []
 data_dict = {}
 start_time = -1
+
+# Plot sensor data and simulation from datastream.csv
 with open('datastream.csv', encoding='utf-8') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     for line in csv_reader:
@@ -51,6 +52,8 @@ calib_gyro_max = 0
 calib_gyro_min = 0
 last_calib_min = 0
 last_calib_t = 0
+
+# Simulate moving and calibrating with selected parameters
 for i in range(len(data_dict['time'])):
     if data_dict['acc_norm'][i] <= STOP_ACCELERATION_MAX and data_dict['gyro_norm'][i] <= STOP_GYRO_MAX:
         if t_stop == 0:
@@ -125,5 +128,5 @@ ax2.plot(calib_t, calib_val, color='green')
 ax2.tick_params(axis='y', labelcolor=color)
 
 fig.tight_layout()  # otherwise the right y-label is slightly clipped
-plt.savefig('datastream.png')
-#plt.show()
+plt.savefig('datastream.png')   # Save plot
+#plt.show() # Show plot

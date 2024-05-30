@@ -5,29 +5,32 @@
 #include "imu_manager.h"
 
 #define SLEEP_TIME 600  // DO NOT SET BELOW 15 SECONDS!!!
-#define POWER_LED 8
-#define SEND_TIME 500        // Time in ms between sending data via bluetooth
+#define POWER_LED 8     // Pin for power LED
+#define SEND_TIME 500   // Time in ms between sending data via bluetooth
 
-uint32_t t_sent = 0;     // Since when was the data last sent to the UI?
+uint32_t t_sent = 0;    // Since when was the data last sent to the UI?
 
 void setup() {
   delay(5000);
   Serial.begin(115200);
   Serial.println();
   SetupBLE();
-  SetupIMU();
+  SetupIMU();   // Start IMU with selected settings
 
+  // Switch power LED on
   pinMode(POWER_LED, OUTPUT);
   digitalWrite(POWER_LED, HIGH);
 }
 
 void loop() {
   switch (device_state) {
-    case 0: // waiting for BLE
+    case 0: // Waiting for BLE
+
+      // Power off to save battery after disconnected for selected time
       if (millis() - last_action > SLEEP_TIME * 1000) {
         digitalWrite(POWER_LED, LOW);
         SleepIMU();
-        esp_deep_sleep_start();  // Power off to save battery
+        esp_deep_sleep_start();
       }
       else {
         if (DEBUG_MODE) {
@@ -36,20 +39,21 @@ void loop() {
         delay(5000);
       }
       break;
-    case 1: // connected, standby
+    case 1: // Connected, standby
       delay(100);
       break;
-    case 2: // starting measurement
+    case 2: // Starting measurement
       uint8_t send_data[1];
       send_data[0] = 0;
-      SendData(send_data, 1);
-      SetupCalibration();
+      SendData(send_data, 1); // Reset sent data
+      SetupCalibration();   // Start initial calibration
       device_state = 3;
       break;
-    case 3: // active measurement
-      UpdateIMU();
+    case 3: // Active measurement
+      UpdateIMU();  // Read new values from IMU
 
-      if(!device_moving && millis() - t_sent >= SEND_TIME) { //send data if enough time has elapsed
+      // Send data if enough time has elapsed
+      if(!device_moving && millis() - t_sent >= SEND_TIME) {
         uint8_t send_data[32];
 
         uint8_t *temp_arr;
@@ -95,7 +99,7 @@ void loop() {
           send_data[28+i] = temp_arr[i];
         }
         
-        SendData(send_data, 32);
+        SendData(send_data, 32);  // Send sensor data to receiver
         t_sent = millis();
       }
       break;

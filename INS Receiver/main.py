@@ -28,6 +28,7 @@ data_points = []
 
 
 async def connect(conn_address):
+    """Connect to device, returns True if successful."""
     global device_connected, device_client
 
     device_client = BleakClient(conn_address)
@@ -44,6 +45,7 @@ async def connect(conn_address):
 
 
 async def disconnect(conn_address):
+    """Disconnect, returns True if successful."""
     global device_connected, device_client
 
     try:
@@ -55,6 +57,7 @@ async def disconnect(conn_address):
 
 
 async def stop_measuring():
+    """Stop measurement, returns True if successful."""
     global is_measuring
 
     try:
@@ -67,6 +70,7 @@ async def stop_measuring():
 
 
 async def start_measuring():
+    """Start measurement, returns True if successful."""
     global is_measuring
 
     try:
@@ -105,6 +109,7 @@ class Window(tk.Tk):
         self.canvas.grid(row=1, columnspan=3)
 
     async def show(self):
+        """Render GUI."""
         global is_measuring
         while True:
             timestamp = None
@@ -166,6 +171,7 @@ class Window(tk.Tk):
             await asyncio.sleep(0.1)
 
     async def toggle_connection(self):
+        """Function for handling connection toggle button presses."""
         global device_connected, device_client
 
         self.conn_button["state"] = DISABLED
@@ -198,6 +204,7 @@ class Window(tk.Tk):
         self.conn_button["state"] = NORMAL
 
     async def toggle_measurement(self):
+        """Function for handling measurement toggle button presses."""
         global is_measuring, data_points
 
         self.control_button["state"] = DISABLED

@@ -1,11 +1,12 @@
 import serial
 import csv
 
-com = "COM3"
-baud = 115200
+com = "COM3"    # Port selection, check from Arduino IDE
+baud = 115200   # Baud rate selection
 
-x = serial.Serial(com, baud, timeout=0.1)
+x = serial.Serial(com, baud, timeout=0.1)   # Open serial connection
 
+# Read sensor data through serial and log in datastream.csv
 with open('datastream.csv', mode='w', newline='') as sensor_file:
     sensor_writer = csv.writer(sensor_file, delimiter=',')
     sensor_writer.writerow(["time", "acc_x", "acc_y", "acc_z", "gyro_x", "gyro_y", "gyro_z"])

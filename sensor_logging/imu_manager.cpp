@@ -5,9 +5,9 @@
 #define GYRO_RANGE 2          // 0: 250, 1: 500, 2: 1000, 3: 2000
 #define LOW_PASS_FILTER 0     // 0: disabled, 1-6: increased filtering
 
-#define G_VALUE 9.825         // Helsinki
+#define G_VALUE 9.825         // Helsinki (m/s^2)
 
-#define SETUP_ITERATION 300
+#define SETUP_ITERATION 300   // Number of sensor reads to perform for setup calibration
 
 
 float gyro_multiplier = 1.0 / (131/pow(2, GYRO_RANGE)) * 1.025; // 16bit to deg/s multiplier, from datasheet, last multiplier tested empirically
@@ -15,6 +15,7 @@ float accel_multiplier = 1.0;                         // 16bit to m/s^2 multipli
 Vector gyro_offset = Vector();                                 // float offset to deg/s values, calculated in setup calibration
 
 
+// Start IMU with selected settings
 void SetupIMU() {
   Wire.begin();           // Initialize comunication
   Wire.setClock(400000);  // 400kHz I2C clock. Comment this line if having compilation difficulties
@@ -43,6 +44,7 @@ void SetupIMU() {
   Wire.endTransmission(true);
 }
 
+// Read raw data from IMU
 std::array<int16_t, 6> ReadSensor() {
   std::array<int16_t, 6> out_data;
 
@@ -64,6 +66,7 @@ std::array<int16_t, 6> ReadSensor() {
   return out_data;
 }
 
+// Apply calculated corrections to raw sensor data and convert to float
 std::array<float, 6> RawCorrection() {
   std::array<int16_t, 6> in_data = ReadSensor();
 
@@ -92,6 +95,7 @@ std::array<float, 6> RawCorrection() {
   return out_data;
 }
 
+// Perform initial calibration and calculate sensor corrections
 void SetupCalibration() {
   Vector linear_acc = Vector();
   Vector angular_vel = Vector();
@@ -109,10 +113,12 @@ void SetupCalibration() {
   gyro_offset = angular_vel * gyro_multiplier; //averaged angular velocity values
 }
 
+// Read new IMU data
 void UpdateIMU() {
-  // Use RawCorrection() and last sensor data to calculate new values
+  // Get new IMU data with corrections
   std::array<float, 6> new_data = RawCorrection();
 
+  // Print IMU data through serial for logging with Python script
   Serial.print(millis());
   Serial.print(",");
   Serial.print(new_data[0]);

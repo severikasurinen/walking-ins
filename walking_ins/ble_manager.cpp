@@ -13,10 +13,13 @@ BLEDescriptor controlDescriptor(BLEUUID((uint16_t)0x2902));
 BLECharacteristic dataCharacteristic(DATA_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor dataDescriptor(BLEUUID((uint16_t)0x2903));
 
+// Function called on BLE connect
 void MyServerCallbacks::onConnect(BLEServer *pServer) {
   device_state = 1;
   Serial.println("Device connected.");
 };
+
+// Function called on BLE disconnect
 void MyServerCallbacks::onDisconnect(BLEServer *pServer) {
   device_state = 0;
   BLEDevice::startAdvertising();
@@ -24,6 +27,7 @@ void MyServerCallbacks::onDisconnect(BLEServer *pServer) {
   Serial.println("Device disconnected.");
 }
 
+// Function called on data received via BLE
 void MyCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
   std::string value = pCharacteristic->getValue();
   if (value.length() > 0) {
@@ -44,6 +48,7 @@ void MyCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
   }
 }
 
+// Start BLE module and advertise with selected name
 void SetupBLE() {
   BLEDevice::init(ADVERTISING_NAME);
   BLEServer *pServer = BLEDevice::createServer();
@@ -63,7 +68,7 @@ void SetupBLE() {
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
+  pAdvertising->setMinPreferred(0x06);
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
 
@@ -72,6 +77,7 @@ void SetupBLE() {
   Serial.println("'.");
 }
 
+// Set BLE data and notify receiver
 void SendData(uint8_t* data, size_t length) {
   dataCharacteristic.setValue(data, length);
   dataCharacteristic.notify();

@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 
+// Define Vector class and operators to help with calculations
 class Vector {
 public:
   float x;
